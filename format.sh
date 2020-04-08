@@ -29,5 +29,6 @@ for file in $files_to_format
 do
     if [[ "${file}" =~ ".hxx" || "${file}" =~ ".cxx" ]] ; then
         echo "Formatting ${file}"
+        clang-format -style=file ${file} -i
     fi
 done

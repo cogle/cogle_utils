@@ -6,8 +6,6 @@ template <typename T, typename E>
 class Result;
 
 template <typename T, typename E>
-class Result {
-    
-};
+class Result {};
 
-} // cogle
+}  // namespace cogle
