@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 format_find_command() {
     local list=$1 
     local path=$2
@@ -15,7 +14,6 @@ format_find_command() {
 
     return 0
 }
-
 
 cur_dir="."
 
