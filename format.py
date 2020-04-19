@@ -12,7 +12,6 @@ def format():
     print("Excluding files in following folders: {}", EXCLUSION_LIST)
     format_files = list()
 
-
     for (dir_path, sub_dirs, filenames) in os.walk(cur_dir):
         sub_dirs[:] = list(filter(lambda d: d not in EXCLUSION_LIST, sub_dirs))
         valid_files = list(filter(lambda f: f.endswith(INCLUSION_LIST), filenames))
