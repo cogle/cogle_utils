@@ -17,7 +17,7 @@ def parse_args():
     ret = dict()
 
     if args.apply:
-        print("Formatting will NOT be applied to the source files")
+        print("Formatting WILL BE applied to the source files")
         ret[APPLY_KEY] = "-i"
     else:
         print("Formatting will NOT be applied to the source files")
