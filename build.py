@@ -3,6 +3,7 @@
 import os
 import argparse
 import subprocess
+import multiprocessing
 
 #Make sure that each key is reflected in on of the below lists
 COMPILER_FLAG_KEY = "compiler"
@@ -10,6 +11,9 @@ BUILD_FLAG_KEY = "build"
 TESTS_FLAG_KEY = "tests"
 TSAN_FLAG_KEY = "tsan"
 ASAN_FLAG_KEY = "asan"
+CLEAN_FLAG_KEY = "clean"
+
+#TODO CLEAN FLAG MAYBE ALSO STORE LAST BUILD IN JSON FILE TO RELOAD
 
 CMAKE_BUILD_ARGS_KEYS_SET = {BUILD_FLAG_KEY, TESTS_FLAG_KEY, TSAN_FLAG_KEY, ASAN_FLAG_KEY}
 BUILD_ENV_KEYS_SET = {COMPILER_FLAG_KEY}
@@ -35,7 +39,7 @@ def parse_args():
     parser.add_argument("--debug", help="Build using debug version", action="store_true")
     parser.add_argument("--release", help="Build using release version", action="store_true")
     parser.add_argument("--tests", help="Build with unit tests", action="store_true")
-    
+    parser.add_argument("--clean", help="Build clean", action="store_true")
 
     args = parser.parse_args()
 
@@ -77,13 +81,17 @@ def parse_args():
     if args.tests:
         ret[TESTS_FLAG_KEY] = UNIT_TESTS_BUILD
 
+    #if args.clean:
+    #    ret[CLEAN_FLAG_KEY] = UNIT_TESTS_BUILD
+
+
     return ret
 
 def create_build_dir(args_dict):
     build_str = ""
     if args_dict[BUILD_FLAG_KEY] == CMAKE_DEBUG_BUILD:
         build_str = "debug"
-    elif args_dict[BUILD_FLAG_KEY] == CMAKE_DEBUG_RELEASE:
+    elif args_dict[BUILD_FLAG_KEY] == CMAKE_RELEASE_BUILD:
         build_str = "release"
     else:
         raise ValueError("Key {} does not belong".format(args_dict[BUILD_FLAG_KEY]))
@@ -119,12 +127,44 @@ def perform_build(args_dict):
     cmake_build_commands = extract_cmake_args(args_dict)
     cmake_command = ["cmake", ".."] + cmake_build_commands
 
-    try:
-        out = subprocess.run(cmake_command)
-    except Exception as e:
-        print("Error occurred will attempting to build inside subprocess {}".format(e))
+    make_command = ["make","-j", "{}".format(max(1, multiprocessing.cpu_count() -2))]
 
+    try:
+        print("~~~~~~~~~~CMAKE Config~~~~~~~~~~")
+        ret = subprocess.run(cmake_command)
+        
+        if ret.returncode != 0:
+            print("CMake configuration FAILED")
+            exit(ret.returncode)
+
+        print()
+        print()
+        print("~~~~~~~~~~CMAKE Config has completed successfully~~~~~~~~~~")
+    except Exception as e:
+        print("Error occurred will attempting to build inside CMake subprocess {}".format(e))
+        os.chdir(cur_dir)
+        exit(-1)
+
+    try:
+        print("~~~~~~~~~~Running make~~~~~~~~~~")
+        ret = subprocess.run(make_command)
+
+        if ret.returncode != 0:
+            print("Building has FAILED")
+            exit(ret.returncode)
+
+        print()
+        print()
+        print("~~~~~~~~~~Build has completed successfully~~~~~~~~~~")
+    except Exception as e:
+        print("Error occurred will attempting to build inside make subprocess {}".format(e))
+        os.chdir(cur_dir)
+        exit(-1)
     
+    
+
+    os.chdir(cur_dir)
+
 
 if __name__ == "__main__":
     perform_build(parse_args())

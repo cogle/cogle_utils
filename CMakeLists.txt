@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13.4)
-project(result)
+#project(result)
 
 # Move to cmake modules and read more on how todo properly
 set(CMAKE_CXX_STANDARD 17)
@@ -22,13 +22,13 @@ if (WITH_TESTS)
         tests/main.cpp
     )
 
-    #target_include_directories(
-    #    ${TEST_TARGET}
-    #    PRIVATE
-    #    include/
-    #)
-
     add_executable(${TEST_TARGET} ${TEST_SOURCES})
+
+    target_include_directories(
+        ${TEST_TARGET}
+        PRIVATE
+        third_party/
+    )
 
     add_test(${TEST_TARGET}, ${TEST_TARGET})
 endif(WITH_TESTS)

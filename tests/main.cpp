@@ -1,8 +1,2 @@
-
-int main(int argc, char const *argv[])
-{
-    (void) argc;
-    (void) argv;
-
-    return 0;
-}
+#define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
+#include "catch2/catch.hpp"
