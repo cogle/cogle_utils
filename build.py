@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import json
 import argparse
 import subprocess
 import multiprocessing
@@ -29,6 +30,27 @@ ASAN_BUILD = "-DWITH_ASAN=true"
 
 UNIT_TESTS_BUILD = "-DWITH_TESTS=true"
 
+BUILD_CONFIG = ".build.conf.json"
+
+def construct_build_conf_json():
+    '''
+    {
+        buildInfo : {
+            active : [args...],
+            release : [args...],
+            debug : [args...]
+        }
+    }
+    '''
+    ret = dict()
+
+    return ret
+
+def load_build_config():
+    pass
+
+def save_build_config():
+    pass
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -119,47 +141,59 @@ def perform_build(args_dict):
     build_dir = create_build_dir(args_dict)
 
     # Create folder(if needed) and go into that directory
+    needs_cmake = False
     if not os.path.exists(build_dir):
         os.makedirs(build_dir)
+        needs_cmake = True
 
     os.chdir(build_dir)
 
-    cmake_build_commands = extract_cmake_args(args_dict)
-    cmake_command = ["cmake", ".."] + cmake_build_commands
+    if needs_cmake:
+        #run_cmake()
+        pass
 
-    make_command = ["make","-j", "{}".format(max(1, multiprocessing.cpu_count() -2))]
 
-    try:
-        print("~~~~~~~~~~CMAKE Config~~~~~~~~~~")
-        ret = subprocess.run(cmake_command)
-        
-        if ret.returncode != 0:
-            print("CMake configuration FAILED")
-            exit(ret.returncode)
+    #run_make()
 
-        print()
-        print()
-        print("~~~~~~~~~~CMAKE Config has completed successfully~~~~~~~~~~")
-    except Exception as e:
-        print("Error occurred will attempting to build inside CMake subprocess {}".format(e))
-        os.chdir(cur_dir)
-        exit(-1)
+    #if False:
+    #    pass
+    #else:
+    #    cmake_build_commands = extract_cmake_args(args_dict)
+    #    cmake_command = ["cmake", ".."] + cmake_build_commands
 
-    try:
-        print("~~~~~~~~~~Running make~~~~~~~~~~")
-        ret = subprocess.run(make_command)
+    #    make_command = ["make","-j", "{}".format(max(1, multiprocessing.cpu_count() -2))]
 
-        if ret.returncode != 0:
-            print("Building has FAILED")
-            exit(ret.returncode)
+    #try:
+    #    print("~~~~~~~~~~CMAKE Config~~~~~~~~~~")
+    #    ret = subprocess.run(cmake_command)
+    #    
+    #    if ret.returncode != 0:
+    #        print("CMake configuration FAILED")
+    #        exit(ret.returncode)
 
-        print()
-        print()
-        print("~~~~~~~~~~Build has completed successfully~~~~~~~~~~")
-    except Exception as e:
-        print("Error occurred will attempting to build inside make subprocess {}".format(e))
-        os.chdir(cur_dir)
-        exit(-1)
+    #    print()
+    #    print()
+    #    print("~~~~~~~~~~CMAKE Config has completed successfully~~~~~~~~~~")
+    #except Exception as e:
+    #    print("Error occurred will attempting to build inside CMake subprocess {}".format(e))
+    #    os.chdir(cur_dir)
+    #    exit(-1)
+
+    #try:
+    #    print("~~~~~~~~~~Running make~~~~~~~~~~")
+    #    ret = subprocess.run(make_command)
+
+    #    if ret.returncode != 0:
+    #        print("Building has FAILED")
+    #        exit(ret.returncode)
+
+    #    print()
+    #    print()
+    #    print("~~~~~~~~~~Build has completed successfully~~~~~~~~~~")
+    #except Exception as e:
+    #    print("Error occurred will attempting to build inside make subprocess {}".format(e))
+    #    os.chdir(cur_dir)
+    #    exit(-1)
     
     
 
