@@ -32,24 +32,38 @@ UNIT_TESTS_BUILD = "-DWITH_TESTS=true"
 
 BUILD_CONFIG = ".build.conf.json"
 
-def construct_build_conf_json():
-    '''
+class BuildConfig:
+    """
     {
-        buildInfo : {
-            active : [args...],
-            release : [args...],
-            debug : [args...]
+        "buildInfo" : {
+            activeBuild : {
+                buildDirectory : "directory",
+                cmakeFlags : ["flag1", "flag2", ....],
+                makeFlags : ["flag1", "flag2:, ...]
+            }
+            debugBuild : {
+                buildDirectory : "directory",
+                cmakeFlags : ["flag1", "flag2", ....],
+                makeFlags : ["flag1", "flag2:, ...]
+            }
+            releaseBuild : {
+                buildDirectory : "directory",
+                cmakeFlags : ["flag1", "flag2", ....],
+                makeFlags : ["flag1", "flag2:, ...]
+            }
         }
     }
-    '''
-    ret = dict()
-
-    return ret
+    """
+    def __init__(self, json_obj):
+        self.__dict__ = json_obj
+    
+    def update_active(self, build_type, build_dir, cmake_flags, make_flags):
+        pass
 
 def load_build_config():
     pass
 
-def save_build_config():
+def save_build_config(build_info):
     pass
 
 def parse_args():
