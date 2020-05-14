@@ -42,19 +42,24 @@ EXIT_CODE_FAIL = -1
 
 class BuildConfig:
     """
+    This is a class that will hold a JSON representation of the build parameters currently
+    in use for the project.
     {
         "buildInfo" : {
             "activeBuild" : {
+                "compiler" : "gcc",
                 "buildDirectory" : "directory",
                 "cmakeFlags" : ["flag1", "flag2", ....],
                 "makeFlags" : ["flag1", "flag2:, ...]
             }
             "debugBuild" : {
+                "compiler" : "clang",
                 "buildDirectory" : "directory",
                 "cmakeFlags" : ["flag1", "flag2", ....],
                 "makeFlags" : ["flag1", "flag2:, ...]
             }
             "releaseBuild" : {
+                "compiler" : "gcc",
                 "buildDirectory" : "directory",
                 "cmakeFlags" : ["flag1", "flag2", ....],
                 "makeFlags" : ["flag1", "flag2:, ...]
@@ -63,22 +68,35 @@ class BuildConfig:
     }
     """
 
+    ROOT_OBJ_KEY      = "buildInfo"
     ACTIVE_BUILD_KEY  = "activeBuild"
     DEBUG_BUILD_KEY   = "debugBuild"
     RELEASE_BUILD_KEY = "releaseBuild"
 
+    COMPILER_KEY        = "compiler"
     BUILD_DIRECTORY_KEY = "buildDirectory"
     CMAKE_FLAGS_KEY     = "makeFlags"
     MAKE_FLAGS_KEY      = "makeFlags"
 
     def __init__(self, json_obj: str):
-        self.__dict__ = json_obj
+        self.json_config = json_obj
     
     #def update_active(self, build_type, build_dir, cmake_flags, make_flags):
     #    pass
 
-    #def get_active():
-    #    pass
+    def has_active(self) -> bool:
+        if not self.json_config:
+            return False
+
+        if self.ROOT_OBJ_KEY in self.json_config and self.ACTIVE_BUILD_KEY in self.json_config:
+           return True
+
+        return False
+
+class BuildInfo:
+    def __init__(self):
+        pass
+
 
 def create_build_dir(args_dict) -> str:
     build_str = ""
@@ -91,7 +109,7 @@ def create_build_dir(args_dict) -> str:
 
     return "{}_{}_build".format(args_dict[COMPILER_FLAG_KEY], build_str)
 
-def extract_cmake_args(args_dict, previous_build: BuildConfig) -> List[str]:
+def extract_cmake_args(args_dict) -> List[str]:
     cmake_args = list()
 
     for k in args_dict:
@@ -106,7 +124,7 @@ def extract_env_args(args_dict):
 
     return env_dict
 
-def load_build_config(build_config_path: str) -> Optional[BuildConfig]:
+def load_build_config(build_config_path: str) -> BuildConfig:
     build_config_file = os.path.join(build_config_path, BUILD_CONFIG)
 
     if os.path.exists(build_config_file):
@@ -114,7 +132,7 @@ def load_build_config(build_config_path: str) -> Optional[BuildConfig]:
             data = json.load(f)
             return BuildConfig(data)
     else:
-        return None
+        return BuildConfig(None)
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -178,9 +196,8 @@ def parse_args():
     return ret
 
 def perform_build(args_dict) -> None:
-    cur_dir = os.getcwd()
+    project_dir = os.getcwd()
 
-    previous_build = load_build_config(cur_dir)
     build_dir = create_build_dir(args_dict)
 
     # Create folder(if needed) and go into that directory
@@ -188,11 +205,10 @@ def perform_build(args_dict) -> None:
         os.makedirs(build_dir)
 
     os.chdir(build_dir)
+    build_cmds = setup_build_args(args_dict, project_dir)
 
-    # Run the CMakeCommand with appropriate args
-    cmake_build_commands = extract_cmake_args(args_dict, previous_build)
-    run_cmake(os.path.join(cur_dir, "CMakeLists.txt"), cmake_build_commands)
-    print()
+    #run_cmake(os.path.join(cur_dir, "CMakeLists.txt"), cmake_build_commands)
+    #print()
     #run_make()
 
 
@@ -262,6 +278,15 @@ def run_subprocess_and_check(cmd: List[str]):
 
 def save_build_config(build_info):
     pass
+
+def setup_build_args(args_dict, project_dir: str) -> BuildInfo:
+    previous_build = load_build_config(project_dir)
+    cmake_build_commands = extract_cmake_args(args_dict)
+
+    #If there are no incoming parameters and their is already an active build use that
+    if not args_dict and previous_build.has_active():
+        pass
+
 
 if __name__ == "__main__":
     perform_build(parse_args())
