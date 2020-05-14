@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13.4)
-#project(result)
+project(cogle_result)
 
 # Move to cmake modules and read more on how todo properly
 set(CMAKE_CXX_STANDARD 17)
