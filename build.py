@@ -15,6 +15,8 @@ ASAN_FLAG_KEY = "asan"
 CLEAN_FLAG_KEY = "clean"
 
 #TODO CLEAN FLAG MAYBE ALSO STORE LAST BUILD IN JSON FILE TO RELOAD
+#TODO ALLOW BUILD DIR FLAG TO BE PASSED IN
+#TODO PRINT GIT BRANCH at end and start
 
 CMAKE_BUILD_ARGS_KEYS_SET = {BUILD_FLAG_KEY, TESTS_FLAG_KEY, TSAN_FLAG_KEY, ASAN_FLAG_KEY}
 BUILD_ENV_KEYS_SET = {COMPILER_FLAG_KEY}
@@ -32,36 +34,57 @@ UNIT_TESTS_BUILD = "-DWITH_TESTS=true"
 
 BUILD_CONFIG = ".build.conf.json"
 
+
 class BuildConfig:
     """
     {
         "buildInfo" : {
-            activeBuild : {
-                buildDirectory : "directory",
-                cmakeFlags : ["flag1", "flag2", ....],
-                makeFlags : ["flag1", "flag2:, ...]
+            "activeBuild" : {
+                "buildDirectory" : "directory",
+                "cmakeFlags" : ["flag1", "flag2", ....],
+                "makeFlags" : ["flag1", "flag2:, ...]
             }
-            debugBuild : {
-                buildDirectory : "directory",
-                cmakeFlags : ["flag1", "flag2", ....],
-                makeFlags : ["flag1", "flag2:, ...]
+            "debugBuild" : {
+                "buildDirectory" : "directory",
+                "cmakeFlags" : ["flag1", "flag2", ....],
+                "makeFlags" : ["flag1", "flag2:, ...]
             }
-            releaseBuild : {
-                buildDirectory : "directory",
-                cmakeFlags : ["flag1", "flag2", ....],
-                makeFlags : ["flag1", "flag2:, ...]
+            "releaseBuild" : {
+                "buildDirectory" : "directory",
+                "cmakeFlags" : ["flag1", "flag2", ....],
+                "makeFlags" : ["flag1", "flag2:, ...]
             }
         }
     }
     """
+
+    ACTIVE_BUILD_KEY  = "activeBuild"
+    DEBUG_BUILD_KEY   = "debugBuild"
+    RELEASE_BUILD_KEY = "releaseBuild"
+
+    BUILD_DIRECTORY_KEY = "buildDirectory"
+    CMAKE_FLAGS_KEY     = "makeFlags"
+    MAKE_FLAGS_KEY      = "makeFlags"
+
     def __init__(self, json_obj):
         self.__dict__ = json_obj
     
-    def update_active(self, build_type, build_dir, cmake_flags, make_flags):
-        pass
+    #def update_active(self, build_type, build_dir, cmake_flags, make_flags):
+    #    pass
 
-def load_build_config():
-    pass
+    #def get_active():
+    #    pass
+
+
+def load_build_config(build_config_path):
+    build_config_file = os.path.join(build_config_path, BUILD_CONFIG)
+
+    if os.path.exists(build_config_file):
+        with open(BUILD_CONFIG, "r") as f:
+            data = json.load(f)
+            return BuildConfig(data)
+    else:
+        return None
 
 def save_build_config(build_info):
     pass
@@ -111,15 +134,19 @@ def parse_args():
     if args.tsan:
         ret[TSAN_FLAG_KEY] = TSAN_BUILD
 
+    #asan
     if args.asan:
         ret[ASAN_FLAG_KEY] = ASAN_BUILD
 
+    #unit tests
     if args.tests:
         ret[TESTS_FLAG_KEY] = UNIT_TESTS_BUILD
 
-    #if args.clean:
-    #    ret[CLEAN_FLAG_KEY] = UNIT_TESTS_BUILD
-
+    #make clean
+    if args.clean:
+        ret[CLEAN_FLAG_KEY] = True
+    else:
+        ret[CLEAN_FLAG_KEY] = False
 
     return ret
 
@@ -152,19 +179,20 @@ def extract_env_args(args_dict):
 def perform_build(args_dict):
     cur_dir = os.getcwd()
 
+    previous_build = load_build_config(cur_dir)
     build_dir = create_build_dir(args_dict)
 
     # Create folder(if needed) and go into that directory
-    needs_cmake = False
-    if not os.path.exists(build_dir):
-        os.makedirs(build_dir)
-        needs_cmake = True
+    #needs_cmake = False
+    #if not os.path.exists(build_dir):
+    #    os.makedirs(build_dir)
+    #    needs_cmake = True
 
-    os.chdir(build_dir)
+    #os.chdir(build_dir)
 
-    if needs_cmake:
-        #run_cmake()
-        pass
+    #if needs_cmake:
+    #    #run_cmake()
+    #    pass
 
 
     #run_make()
@@ -209,8 +237,6 @@ def perform_build(args_dict):
     #    os.chdir(cur_dir)
     #    exit(-1)
     
-    
-
     os.chdir(cur_dir)
 
 
