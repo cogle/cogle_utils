@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import enum
 import json
 import argparse
 import subprocess
@@ -25,9 +26,11 @@ CLEAN_FLAG_KEY = "clean"
 CMAKE_BUILD_ARGS_KEYS_SET = {BUILD_FLAG_KEY, TESTS_FLAG_KEY, TSAN_FLAG_KEY, ASAN_FLAG_KEY}
 BUILD_ENV_KEYS_SET = {COMPILER_FLAG_KEY}
 
+# TODO REPLACE WITH ENUMS below
 GNU_COMPILER_FLAG_SELECT_VAL   = "gnu"
 CLANG_COMPILER_FLAG_SELECT_VAL = "clang"
 
+# TODO REPLACE WITH ENUMS below
 CMAKE_DEBUG_BUILD = "-DCMAKE_BUILD_TYPE=Debug"
 CMAKE_RELEASE_BUILD = "-DCMAKE_BUILD_TYPE=Release"
 
@@ -40,6 +43,14 @@ BUILD_CONFIG = ".build.conf.json"
 
 EXIT_CODE_FAIL = -1
 
+class BuildType(enum.Enum):
+    DEBUG = 0
+    RELEASE = 1
+
+class CompilerType(enum.Enum):
+    GNU = 0
+    CLANG = 1
+
 class BuildConfig:
     """
     This is a class that will hold a JSON representation of the build parameters currently
@@ -51,13 +62,13 @@ class BuildConfig:
                 "buildDirectory" : "directory",
                 "cmakeFlags" : ["flag1", "flag2", ....],
                 "makeFlags" : ["flag1", "flag2:, ...]
-            }
+            },
             "debugBuild" : {
                 "compiler" : "clang",
                 "buildDirectory" : "directory",
                 "cmakeFlags" : ["flag1", "flag2", ....],
                 "makeFlags" : ["flag1", "flag2:, ...]
-            }
+            },
             "releaseBuild" : {
                 "compiler" : "gcc",
                 "buildDirectory" : "directory",
@@ -205,7 +216,8 @@ def perform_build(args_dict) -> None:
         os.makedirs(build_dir)
 
     os.chdir(build_dir)
-    build_cmds = setup_build_args(args_dict, project_dir)
+
+    build_info = setup_build_args(args_dict, project_dir)
 
     #run_cmake(os.path.join(cur_dir, "CMakeLists.txt"), cmake_build_commands)
     #print()
@@ -281,11 +293,18 @@ def save_build_config(build_info):
 
 def setup_build_args(args_dict, project_dir: str) -> BuildInfo:
     previous_build = load_build_config(project_dir)
-    cmake_build_commands = extract_cmake_args(args_dict)
 
-    #If there are no incoming parameters and their is already an active build use that
-    if not args_dict and previous_build.has_active():
+    cmake_build_commands = extract_cmake_args(args_dict)
+    env_args = extract_env_args(args_dict)
+
+    #Cases
+    #1) There is no active build set the incoming as the active build.
+    #2) The CMake Commands from the args_dict are empty(This by default means last build)
+    if not previous_build.has_active():
         pass
+    #else if 
+    #else Active build is different
+
 
 
 if __name__ == "__main__":
