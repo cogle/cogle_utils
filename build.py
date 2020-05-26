@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 import enum
 import json
 import argparse
@@ -26,14 +27,6 @@ CLEAN_FLAG_KEY = "clean"
 CMAKE_BUILD_ARGS_KEYS_SET = {BUILD_FLAG_KEY, TESTS_FLAG_KEY, TSAN_FLAG_KEY, ASAN_FLAG_KEY}
 BUILD_ENV_KEYS_SET = {COMPILER_FLAG_KEY}
 
-# TODO REPLACE WITH ENUMS below
-GNU_COMPILER_FLAG_SELECT_VAL   = "gnu"
-CLANG_COMPILER_FLAG_SELECT_VAL = "clang"
-
-# TODO REPLACE WITH ENUMS below
-CMAKE_DEBUG_BUILD = "-DCMAKE_BUILD_TYPE=Debug"
-CMAKE_RELEASE_BUILD = "-DCMAKE_BUILD_TYPE=Release"
-
 TSAN_BUILD = "-DWITH_TSAN=true"
 ASAN_BUILD = "-DWITH_ASAN=true"
 
@@ -58,7 +51,7 @@ class BuildConfig:
     {
         "buildInfo" : {
             "activeBuild" : {
-                "compiler" : "gcc",
+                "compiler" : "gnu",
                 "buildDirectory" : "directory",
                 "cmakeFlags" : ["flag1", "flag2", ....],
                 "makeFlags" : ["flag1", "flag2:, ...]
@@ -70,7 +63,7 @@ class BuildConfig:
                 "makeFlags" : ["flag1", "flag2:, ...]
             },
             "releaseBuild" : {
-                "compiler" : "gcc",
+                "compiler" : "gnu",
                 "buildDirectory" : "directory",
                 "cmakeFlags" : ["flag1", "flag2", ....],
                 "makeFlags" : ["flag1", "flag2:, ...]
@@ -110,15 +103,7 @@ class BuildInfo:
 
 
 def create_build_dir(args_dict) -> str:
-    build_str = ""
-    if args_dict[BUILD_FLAG_KEY] == CMAKE_DEBUG_BUILD:
-        build_str = "debug"
-    elif args_dict[BUILD_FLAG_KEY] == CMAKE_RELEASE_BUILD:
-        build_str = "release"
-    else:
-        raise ValueError("Key {} does not belong".format(args_dict[BUILD_FLAG_KEY]))
-
-    return "{}_{}_build".format(args_dict[COMPILER_FLAG_KEY], build_str)
+    return "{}_{}_build".format(args_dict[COMPILER_FLAG_KEY].name, args_dict[BUILD_FLAG_KEY].name).lower()
 
 def extract_cmake_args(args_dict) -> List[str]:
     cmake_args = list()
@@ -160,7 +145,21 @@ def parse_args():
 
     ret = dict()
 
+
     #Check all parser arg errors/validity below
+
+    #If there is nothing then early terminate and attempt to use the cached version
+    if sys.argv == 1:
+        return ret
+
+    #make clean
+    if args.clean:
+        # If the clean flag is specified then early return.
+        ret[CLEAN_FLAG_KEY] = True
+        return ret
+    else:
+        ret[CLEAN_FLAG_KEY] = False
+
 
     #Check and ensure that either GNU or Clang is selected
     if args.gnu and args.clang:
@@ -174,17 +173,17 @@ def parse_args():
 
     # Compiler Selection
     if args.gnu:
-        ret[COMPILER_FLAG_KEY] = GNU_COMPILER_FLAG_SELECT_VAL
+        ret[COMPILER_FLAG_KEY] = CompilerType.GNU.name
     else:
         #Default compiler is clang++
-        ret[COMPILER_FLAG_KEY] = CLANG_COMPILER_FLAG_SELECT_VAL
+        ret[COMPILER_FLAG_KEY] = CompilerType.CLANG.name 
 
     # Build Type Selection
     if args.release:
-        ret[BUILD_FLAG_KEY] = CMAKE_RELEASE_BUILD
+        ret[BUILD_FLAG_KEY] = BuildType.RELEASE.name
     else:
         #Default build option is Debug
-        ret[BUILD_FLAG_KEY] = CMAKE_DEBUG_BUILD
+        ret[BUILD_FLAG_KEY] = BuildType.DEBUG.name
 
     #tsan
     if args.tsan:
@@ -197,12 +196,6 @@ def parse_args():
     #unit tests
     if args.tests:
         ret[TESTS_FLAG_KEY] = UNIT_TESTS_BUILD
-
-    #make clean
-    if args.clean:
-        ret[CLEAN_FLAG_KEY] = True
-    else:
-        ret[CLEAN_FLAG_KEY] = False
 
     return ret
 
