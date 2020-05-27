@@ -36,6 +36,21 @@ BUILD_CONFIG = ".build.conf.json"
 
 EXIT_CODE_FAIL = -1
 
+class Parser:
+    @staticmethod
+    def parse_build_args(args_dict) -> List[str]:
+        pass
+
+    @staticmethod
+    def parse_cmake_args(args_dict) -> List[str]:
+        cmake_args = list()
+
+        for k in args_dict:
+            if k in CMAKE_BUILD_ARGS_KEYS_SET:
+                cmake_args.append(args_dict[k])            
+
+        return cmake_args
+
 class BuildType(enum.Enum):
     DEBUG = 0
     RELEASE = 1
@@ -44,12 +59,21 @@ class CompilerType(enum.Enum):
     GNU = 0
     CLANG = 1
 
+class BuildInfo:
+    def __init__(self, compiler: CompilerType, build_type: BuildType, build_dir: str, cmake_flags: List[str], make_flags: List[str]):
+        self.compiler = compiler
+        self.build_type = build_type
+
+        self.build_dir = build_dir 
+        self.cmake_flags = cmake_flags
+        self.make_flags = make_flags 
+
 class BuildConfig:
     """
     This is a class that will hold a JSON representation of the build parameters currently
     in use for the project.
     {
-        "buildInfo" : {
+        "builds" : {
             "activeBuild" : {
                 "compiler" : "gnu",
                 "buildDirectory" : "directory",
@@ -97,22 +121,9 @@ class BuildConfig:
 
         return False
 
-class BuildInfo:
-    def __init__(self):
-        pass
-
 
 def create_build_dir(args_dict) -> str:
     return "{}_{}_build".format(args_dict[COMPILER_FLAG_KEY].name, args_dict[BUILD_FLAG_KEY].name).lower()
-
-def extract_cmake_args(args_dict) -> List[str]:
-    cmake_args = list()
-
-    for k in args_dict:
-        if k in CMAKE_BUILD_ARGS_KEYS_SET:
-            cmake_args.append(args_dict[k])            
-
-    return cmake_args
 
 def extract_env_args(args_dict):
     #https://stackoverflow.com/questions/7031126/switching-between-gcc-and-clang-llvm-using-cmake
@@ -173,17 +184,16 @@ def parse_args():
 
     # Compiler Selection
     if args.gnu:
-        ret[COMPILER_FLAG_KEY] = CompilerType.GNU.name
-    else:
+        ret[COMPILER_FLAG_KEY] = CompilerType.GNU
+    elif args.clang:
         #Default compiler is clang++
-        ret[COMPILER_FLAG_KEY] = CompilerType.CLANG.name 
+        ret[COMPILER_FLAG_KEY] = CompilerType.CLANG
 
     # Build Type Selection
     if args.release:
-        ret[BUILD_FLAG_KEY] = BuildType.RELEASE.name
-    else:
-        #Default build option is Debug
-        ret[BUILD_FLAG_KEY] = BuildType.DEBUG.name
+        ret[BUILD_FLAG_KEY] = BuildType.RELEASE
+    elif args.debug:
+        ret[BUILD_FLAG_KEY] = BuildType.DEBUG
 
     #tsan
     if args.tsan:
@@ -202,15 +212,17 @@ def parse_args():
 def perform_build(args_dict) -> None:
     project_dir = os.getcwd()
 
-    build_dir = create_build_dir(args_dict)
+    build_info = setup_build_args(args_dict, project_dir)
+    print(f"DEBUG\n{build_info.__dict__}")
 
     # Create folder(if needed) and go into that directory
-    if not os.path.exists(build_dir):
-        os.makedirs(build_dir)
+    #if not os.path.exists(build_dir):
+    #    os.makedirs(build_dir)
 
-    os.chdir(build_dir)
+    #build_dir = create_build_dir(args_dict)
+    #os.chdir(build_dir)
 
-    build_info = setup_build_args(args_dict, project_dir)
+
 
     #run_cmake(os.path.join(cur_dir, "CMakeLists.txt"), cmake_build_commands)
     #print()
@@ -249,7 +261,7 @@ def perform_build(args_dict) -> None:
     #    os.chdir(cur_dir)
     #    exit(-1)
     
-    os.chdir(cur_dir)
+    os.chdir(project_dir)
 
 def run_cmake(cmake_url: str, cmake_build_commands: List[str]) -> None:
     if not os.path.exists(cmake_url):
@@ -287,16 +299,33 @@ def save_build_config(build_info):
 def setup_build_args(args_dict, project_dir: str) -> BuildInfo:
     previous_build = load_build_config(project_dir)
 
-    cmake_build_commands = extract_cmake_args(args_dict)
+    #Cases
+    #1) There is no active build set the incoming as the active build 
+    #2) The CMake Commands from the args_dict are empty(This by default means last build) and there is an active build.
+    #3) The only key in the args_dict is make.
+    #4) This build is a new build set it to the appropriate build type and use this.
+
+    build_info: BuildInfo = None    
+
+    if not previous_build.has_active():
+        # Case 1
+        print("No active build detected")
+        #build_info = BuildInfo(args_dict[COMPILER_FLAG_KEY], args_dict[BUILD_FLAG_KEY], "", [], [])
+    elif len(args_dict) == 0:
+        # Case 2
+        print("No using cached build")
+    elif len(args_dict) == 1 and CLEAN_FLAG_KEY in args_dict:
+        # Case 3
+        print("Using cached build and cleaning")
+    else:
+        # Case 4
+        pass
+
+    #TODO Handle the case where the build is different then the currently active build
+    cmake_build_commands = Parser.parse_cmake_args(args_dict)
     env_args = extract_env_args(args_dict)
 
-    #Cases
-    #1) There is no active build set the incoming as the active build.
-    #2) The CMake Commands from the args_dict are empty(This by default means last build)
-    if not previous_build.has_active():
-        pass
-    #else if 
-    #else Active build is different
+    return build_info
 
 
 
