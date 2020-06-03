@@ -4,7 +4,7 @@ import os
 import argparse
 import subprocess
 
-EXCLUSION_LIST = ["third_party", ".git"]
+EXCLUSION_LIST = ["third_party", ".git", "CMakeFiles"]
 INCLUSION_LIST = (".cxx", ".hxx")
 
 APPLY_KEY = "apply"
