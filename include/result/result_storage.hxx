@@ -1,3 +1,7 @@
 #pragma once
 
-#include <variant>
+namespace cogle {
+    namespace result {
+
+    }
+}

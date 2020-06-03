@@ -13,6 +13,7 @@ from typing import Dict, List, Optional
 #Make sure that each key is reflected in on of the below lists
 COMPILER_FLAG_KEY = "compiler"
 BUILD_FLAG_KEY = "build"
+CMAKE_BUILD_FLAG_KEY = "build"
 TESTS_FLAG_KEY = "tests"
 TSAN_FLAG_KEY = "tsan"
 ASAN_FLAG_KEY = "asan"
@@ -228,8 +229,10 @@ def parse_args():
     # Build Type Selection
     if args.release:
         ret[BUILD_FLAG_KEY] = BuildType.RELEASE
+        #TODO set CMAKE build flag here and in check
     elif args.debug:
         ret[BUILD_FLAG_KEY] = BuildType.DEBUG
+        #TODO set CMAKE build flag here and in check
 
     #tsan
     if args.tsan:
