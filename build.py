@@ -25,6 +25,7 @@ BUILD_DIR_CMAKE_FLAG_KEY = "cmake_build_dir_flag"
 #TODO SUPPORT COMPILER SWITCHING VIA ENV SETTING
 #TODO SUPPORT CORES FLAG
 #TODO SUPPORT MULTIPLE BUILDS
+#TODO MAKE SOURCE DIR CONFIGURABLE
 
 CMAKE_BUILD_ARGS_KEYS_SET = {BUILD_FLAG_KEY, TESTS_FLAG_KEY, TSAN_FLAG_KEY, ASAN_FLAG_KEY, BUILD_DIR_CMAKE_FLAG_KEY}
 BUILD_ENV_KEYS_SET = {COMPILER_FLAG_KEY}
@@ -82,8 +83,22 @@ class BuildInfo:
         self.env_vars = env_vars
         self.build_dir = build_dir
 
+        self.is_cached = False
+
     def get_build_dir(self) -> str:
         return self.build_dir
+
+    def get_cached(self) -> bool:
+        return self.is_cached
+
+    def get_cmake_flags(self) -> List[str]:
+        return list()
+
+    def get_env_vars(self) -> List[str]:
+        return list()
+
+    def mark_cached(self, is_cached: bool) -> None:
+        self.is_cached = is_cached
 
 class BuildConfig:
     """
@@ -92,18 +107,6 @@ class BuildConfig:
     {
         "builds" : {
             "activeBuild" : {
-                "compiler" : "gnu",
-                "buildDirectory" : "directory",
-                "cmakeFlags" : ["flag1", "flag2", ....],
-                "makeFlags" : ["flag1", "flag2:, ...]
-            },
-            "debugBuild" : {
-                "compiler" : "clang",
-                "buildDirectory" : "directory",
-                "cmakeFlags" : ["flag1", "flag2", ....],
-                "makeFlags" : ["flag1", "flag2:, ...]
-            },
-            "releaseBuild" : {
                 "compiler" : "gnu",
                 "buildDirectory" : "directory",
                 "cmakeFlags" : ["flag1", "flag2", ....],
@@ -192,7 +195,7 @@ def parse_args():
 
     ret = dict()
 
-    #Assign all parser args below
+    #Extract all parser args below
 
     #If there is nothing then early terminate and attempt to use the cached version
     if sys.argv == 1:
@@ -256,7 +259,24 @@ def perform_build(args_dict) -> None:
     build_info = setup_build_args(args_dict, project_dir)
     print(f"DEBUG\n{build_info.__dict__}")
 
-    #os.chdir(build_dir // GET FROM build_info)
+    build_dir = build_info.get_build_dir()
+
+    if not build_info.get_cached() and not os.path.exists(build_dir):
+        print(f"Creating {build_dir}")
+        os.mkdir(build_dir)
+
+    if build_info.get_cached() and not os.path.exists(build_dir):
+        print(f"Build directory for cached build does not exists {build_dir}")
+        os.mkdir(build_dir)
+        print(f"Cached build will be REBUILT")
+        build_info.mark_cached(False)
+
+    os.chdir(build_dir)
+
+    #Run CMake Commands if need
+    if not build_info.get_cached():
+        run_cmake(os.path.join(project_dir, "CMakeLists.txt"), build_info.get_cmake_flags())
+
     # Create folder(if needed) and go into that directory
     #build_dir = create_build_dir(args_dict)
 
@@ -305,12 +325,10 @@ def run_cmake(cmake_url: str, cmake_build_commands: List[str]) -> None:
         print("Unable to find CMakeLists.txt at location {}".format(cmake_url))
         exit(EXIT_CODE_FAIL)
 
-    #TODO: Fix cmd below via 
+    #CMake source and build directory parameters
     #https://stackoverflow.com/questions/18826789/cmake-output-build-directory
-    #-S for source dir 
 
     print("~~~~~~~~~~CMAKE Config~~~~~~~~~~")
-    #cmd = ["cmake", cmake_url] + cmake_build_commands
     print("~~~~~~~~~~CMAKE Config has completed successfully~~~~~~~~~~")
 
 def run_make():
