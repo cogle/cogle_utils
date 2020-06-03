@@ -17,15 +17,19 @@ TESTS_FLAG_KEY = "tests"
 TSAN_FLAG_KEY = "tsan"
 ASAN_FLAG_KEY = "asan"
 CLEAN_FLAG_KEY = "clean"
+BUILD_DIR_FLAG_KEY = "cmake_build_dir"
+BUILD_DIR_CMAKE_FLAG_KEY = "cmake_build_dir_flag"
 
 #TODO CLEAN FLAG MAYBE ALSO STORE LAST BUILD IN JSON FILE TO RELOAD
-#TODO ALLOW BUILD DIR FLAG TO BE PASSED IN
 #TODO PRINT GIT BRANCH at end and start
 #TODO SUPPORT COMPILER SWITCHING VIA ENV SETTING
 #TODO SUPPORT CORES FLAG
+#TODO SUPPORT MULTIPLE BUILDS
 
-CMAKE_BUILD_ARGS_KEYS_SET = {BUILD_FLAG_KEY, TESTS_FLAG_KEY, TSAN_FLAG_KEY, ASAN_FLAG_KEY}
+CMAKE_BUILD_ARGS_KEYS_SET = {BUILD_FLAG_KEY, TESTS_FLAG_KEY, TSAN_FLAG_KEY, ASAN_FLAG_KEY, BUILD_DIR_CMAKE_FLAG_KEY}
 BUILD_ENV_KEYS_SET = {COMPILER_FLAG_KEY}
+
+REQUIRED_KEYS = {BUILD_FLAG_KEY, BUILD_DIR_FLAG_KEY, COMPILER_FLAG_KEY}
 
 TSAN_BUILD = "-DWITH_TSAN=true"
 ASAN_BUILD = "-DWITH_ASAN=true"
@@ -36,20 +40,33 @@ BUILD_CONFIG = ".build.conf.json"
 
 EXIT_CODE_FAIL = -1
 
+DEFAULT_CMAKE_DICT = {}
+DEFAULT_BUILD_ENV_DICT = {}
+
 class Parser:
     @staticmethod
     def parse_build_args(args_dict) -> List[str]:
         pass
 
     @staticmethod
-    def parse_cmake_args(args_dict) -> List[str]:
-        cmake_args = list()
+    def parse_cmake_args(args_dict) -> Dict[str, str]:
+        cmake_args = dict()
 
         for k in args_dict:
             if k in CMAKE_BUILD_ARGS_KEYS_SET:
-                cmake_args.append(args_dict[k])            
+                cmake_args[k] = str(args_dict[k])
 
         return cmake_args
+
+    @staticmethod
+    def parse_build_env(args_dict) -> Dict[str, str]:
+        build_env = dict()
+
+        for k in args_dict:
+            if k in BUILD_ENV_KEYS_SET:
+                build_env[k] = str(args_dict[k])
+
+        return build_env
 
 class BuildType(enum.Enum):
     DEBUG = 0
@@ -60,13 +77,13 @@ class CompilerType(enum.Enum):
     CLANG = 1
 
 class BuildInfo:
-    def __init__(self, compiler: CompilerType, build_type: BuildType, build_dir: str, cmake_flags: List[str], make_flags: List[str]):
-        self.compiler = compiler
-        self.build_type = build_type
-
-        self.build_dir = build_dir 
+    def __init__(self, build_dir: str, cmake_flags: Dict[str, str], env_vars: Dict[str, str]):
         self.cmake_flags = cmake_flags
-        self.make_flags = make_flags 
+        self.env_vars = env_vars
+        self.build_dir = build_dir
+
+    def get_build_dir(self) -> str:
+        return self.build_dir
 
 class BuildConfig:
     """
@@ -121,15 +138,33 @@ class BuildConfig:
 
         return False
 
+def check_default_args(args_dict):
+    """Ensure that the passed in args from the user have the proper
+    default arguments set.
+    """
 
-def create_build_dir(args_dict) -> str:
-    return "{}_{}_build".format(args_dict[COMPILER_FLAG_KEY].name, args_dict[BUILD_FLAG_KEY].name).lower()
+    validated_args_dict = args_dict
 
-def extract_env_args(args_dict):
-    #https://stackoverflow.com/questions/7031126/switching-between-gcc-and-clang-llvm-using-cmake
-    env_dict = dict()
+    for k in REQUIRED_KEYS:
+        if k not in args_dict:
+            if k == BUILD_FLAG_KEY:
+                validated_args_dict[k] = BuildType.DEBUG
+            elif k == BUILD_DIR_FLAG_KEY:
+                build_dir = os.path.join(os.getcwd(), "build")
 
-    return env_dict
+                validated_args_dict[k] = build_dir
+                validated_args_dict[BUILD_DIR_CMAKE_FLAG_KEY] = f"-B{build_dir}"
+            elif k == COMPILER_FLAG_KEY:
+                validated_args_dict[k] = CompilerType.CLANG
+            else:
+                print(f"Key {k} is required but is not handled")
+                exit(EXIT_CODE_FAIL)
+    
+    return validated_args_dict
+
+#TODO support multiple cached builds
+#def create_build_folder(args_dict) -> str:
+#    return "{}_{}_build".format(args_dict[COMPILER_FLAG_KEY].name, args_dict[BUILD_FLAG_KEY].name).lower()
 
 def load_build_config(build_config_path: str) -> BuildConfig:
     build_config_file = os.path.join(build_config_path, BUILD_CONFIG)
@@ -143,11 +178,12 @@ def load_build_config(build_config_path: str) -> BuildConfig:
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--dir", help="Directory to place build folder in", action="store", type=str)
     parser.add_argument("--clang", help="Use clang++ compiler to build(default)", action="store_true")
     parser.add_argument("--gnu", help="Use g++ compiler to build", action="store_true")
     parser.add_argument("--tsan", help="Build using tsan utility to check thread safety", action="store_true")
     parser.add_argument("--asan", help="Build using asan utility to check memory safety", action="store_true")
-    parser.add_argument("--debug", help="Build using debug version", action="store_true")
+    parser.add_argument("--debug", help="Build using debug version(default)", action="store_true")
     parser.add_argument("--release", help="Build using release version", action="store_true")
     parser.add_argument("--tests", help="Build with unit tests", action="store_true")
     parser.add_argument("--clean", help="Build clean", action="store_true")
@@ -156,8 +192,7 @@ def parse_args():
 
     ret = dict()
 
-
-    #Check all parser arg errors/validity below
+    #Assign all parser args below
 
     #If there is nothing then early terminate and attempt to use the cached version
     if sys.argv == 1:
@@ -170,7 +205,6 @@ def parse_args():
         return ret
     else:
         ret[CLEAN_FLAG_KEY] = False
-
 
     #Check and ensure that either GNU or Clang is selected
     if args.gnu and args.clang:
@@ -186,7 +220,6 @@ def parse_args():
     if args.gnu:
         ret[COMPILER_FLAG_KEY] = CompilerType.GNU
     elif args.clang:
-        #Default compiler is clang++
         ret[COMPILER_FLAG_KEY] = CompilerType.CLANG
 
     # Build Type Selection
@@ -206,6 +239,14 @@ def parse_args():
     #unit tests
     if args.tests:
         ret[TESTS_FLAG_KEY] = UNIT_TESTS_BUILD
+    
+    #build dir
+    if args.dir:
+        if not os.path.exists(args.dir):
+            raise parser.error(f"Directory {args.dir} does not exists please create and run again.")
+
+        ret[BUILD_DIR_CMAKE_FLAG_KEY] = f"-B{args.dir}"
+        ret[BUILD_DIR_FLAG_KEY] = f"{args.dir}"
 
     return ret
 
@@ -215,13 +256,9 @@ def perform_build(args_dict) -> None:
     build_info = setup_build_args(args_dict, project_dir)
     print(f"DEBUG\n{build_info.__dict__}")
 
+    #os.chdir(build_dir // GET FROM build_info)
     # Create folder(if needed) and go into that directory
-    #if not os.path.exists(build_dir):
-    #    os.makedirs(build_dir)
-
     #build_dir = create_build_dir(args_dict)
-    #os.chdir(build_dir)
-
 
 
     #run_cmake(os.path.join(cur_dir, "CMakeLists.txt"), cmake_build_commands)
@@ -271,7 +308,6 @@ def run_cmake(cmake_url: str, cmake_build_commands: List[str]) -> None:
     #TODO: Fix cmd below via 
     #https://stackoverflow.com/questions/18826789/cmake-output-build-directory
     #-S for source dir 
-    #-B for build dir
 
     print("~~~~~~~~~~CMAKE Config~~~~~~~~~~")
     #cmd = ["cmake", cmake_url] + cmake_build_commands
@@ -279,6 +315,7 @@ def run_cmake(cmake_url: str, cmake_build_commands: List[str]) -> None:
 
 def run_make():
     #    make_command = ["make","-j", "{}".format(max(1, multiprocessing.cpu_count() -2))]
+    #https://stackoverflow.com/questions/7031126/switching-between-gcc-and-clang-llvm-using-cmake
     pass 
 
 def run_subprocess_and_check(cmd: List[str]):
@@ -310,24 +347,28 @@ def setup_build_args(args_dict, project_dir: str) -> BuildInfo:
     if not previous_build.has_active():
         # Case 1
         print("No active build detected")
-        #build_info = BuildInfo(args_dict[COMPILER_FLAG_KEY], args_dict[BUILD_FLAG_KEY], "", [], [])
+        args = check_default_args(args_dict)
+
+        build_dir: str = args[BUILD_DIR_FLAG_KEY]
+
+        cmake_build_commands = Parser.parse_cmake_args(args)
+        env_args = Parser.parse_build_env(args)
+
+        build_info = BuildInfo(build_dir, cmake_build_commands, env_args)
     elif len(args_dict) == 0:
         # Case 2
-        print("No using cached build")
+        print("Using previously cached build")
     elif len(args_dict) == 1 and CLEAN_FLAG_KEY in args_dict:
         # Case 3
         print("Using cached build and cleaning")
     else:
-        # Case 4
+        # Case 4 What defines new
         pass
 
+
     #TODO Handle the case where the build is different then the currently active build
-    cmake_build_commands = Parser.parse_cmake_args(args_dict)
-    env_args = extract_env_args(args_dict)
 
     return build_info
-
-
 
 if __name__ == "__main__":
     perform_build(parse_args())
