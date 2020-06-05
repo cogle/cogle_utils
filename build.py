@@ -13,7 +13,7 @@ from typing import Dict, List, Optional
 #Make sure that each key is reflected in on of the below lists
 COMPILER_FLAG_KEY = "compiler"
 BUILD_FLAG_KEY = "build"
-CMAKE_BUILD_FLAG_KEY = "build"
+CMAKE_BUILD_FLAG_KEY = "cmake_build_flag"
 TESTS_FLAG_KEY = "tests"
 TSAN_FLAG_KEY = "tsan"
 ASAN_FLAG_KEY = "asan"
@@ -22,13 +22,12 @@ BUILD_DIR_FLAG_KEY = "cmake_build_dir"
 BUILD_DIR_CMAKE_FLAG_KEY = "cmake_build_dir_flag"
 
 #TODO CLEAN FLAG MAYBE ALSO STORE LAST BUILD IN JSON FILE TO RELOAD
-#TODO PRINT GIT BRANCH at end and start
 #TODO SUPPORT COMPILER SWITCHING VIA ENV SETTING
 #TODO SUPPORT CORES FLAG
 #TODO SUPPORT MULTIPLE BUILDS
 #TODO MAKE SOURCE DIR CONFIGURABLE
 
-CMAKE_BUILD_ARGS_KEYS_SET = {BUILD_FLAG_KEY, TESTS_FLAG_KEY, TSAN_FLAG_KEY, ASAN_FLAG_KEY, BUILD_DIR_CMAKE_FLAG_KEY}
+CMAKE_BUILD_ARGS_KEYS_SET = {CMAKE_BUILD_FLAG_KEY, TESTS_FLAG_KEY, TSAN_FLAG_KEY, ASAN_FLAG_KEY, BUILD_DIR_CMAKE_FLAG_KEY}
 BUILD_ENV_KEYS_SET = {COMPILER_FLAG_KEY}
 
 REQUIRED_KEYS = {BUILD_FLAG_KEY, BUILD_DIR_FLAG_KEY, COMPILER_FLAG_KEY}
@@ -153,6 +152,7 @@ def check_default_args(args_dict):
         if k not in args_dict:
             if k == BUILD_FLAG_KEY:
                 validated_args_dict[k] = BuildType.DEBUG
+                validated_args_dict[CMAKE_BUILD_FLAG_KEY] = f"-DCMAKE_BUILD_TYPE={BuildType.DEBUG.name}"
             elif k == BUILD_DIR_FLAG_KEY:
                 build_dir = os.path.join(os.getcwd(), "build")
 
@@ -229,10 +229,10 @@ def parse_args():
     # Build Type Selection
     if args.release:
         ret[BUILD_FLAG_KEY] = BuildType.RELEASE
-        #TODO set CMAKE build flag here and in check
+        ret[CMAKE_BUILD_FLAG_KEY] = f"-DCMAKE_BUILD_TYPE={BuildType.RELEASE.name}"
     elif args.debug:
         ret[BUILD_FLAG_KEY] = BuildType.DEBUG
-        #TODO set CMAKE build flag here and in check
+        ret[CMAKE_BUILD_FLAG_KEY] = f"-DCMAKE_BUILD_TYPE={BuildType.DEBUG.name}"
 
     #tsan
     if args.tsan:
@@ -258,6 +258,8 @@ def parse_args():
 
 def perform_build(args_dict) -> None:
     project_dir = os.getcwd()
+
+    run_git_info()
 
     build_info = setup_build_args(args_dict, project_dir)
     print(f"DEBUG\n{build_info.__dict__}")
@@ -333,6 +335,13 @@ def run_cmake(cmake_url: str, cmake_build_commands: List[str]) -> None:
 
     print("~~~~~~~~~~CMAKE Config~~~~~~~~~~")
     print("~~~~~~~~~~CMAKE Config has completed successfully~~~~~~~~~~")
+
+def run_git_info() -> None:
+    #TODO change to have another function called run that returns completed process
+    #This is because check_call should not capture stdout
+    #https://docs.python.org/3/library/subprocess.html#subprocess.run
+    #run_subprocess_and_check(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+    pass
 
 def run_make():
     #    make_command = ["make","-j", "{}".format(max(1, multiprocessing.cpu_count() -2))]
