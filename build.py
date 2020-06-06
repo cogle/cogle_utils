@@ -92,7 +92,7 @@ class BuildInfo:
         return self.is_cached
 
     def get_cmake_flags(self) -> List[str]:
-        return list()
+        return [v for v in self.cmake_flags.values()]
 
     def get_env_vars(self) -> List[str]:
         return list()
@@ -278,9 +278,8 @@ def perform_build(args_dict) -> None:
 
     os.chdir(build_dir)
 
-    #Run CMake Commands if need
-    if not build_info.get_cached():
-        run_cmake(os.path.join(project_dir, "CMakeLists.txt"), build_info.get_cmake_flags())
+    #Run CMake Commands
+    run_cmake(os.path.join(project_dir, "CMakeLists.txt"), build_info.get_cmake_flags())
 
     # Create folder(if needed) and go into that directory
     #build_dir = create_build_dir(args_dict)
@@ -334,31 +333,20 @@ def run_cmake(cmake_url: str, cmake_build_commands: List[str]) -> None:
     #https://stackoverflow.com/questions/18826789/cmake-output-build-directory
 
     print("~~~~~~~~~~CMAKE Config~~~~~~~~~~")
+    #subprocess_check_call(["cmake"] + cmake_build_commands) 
     print("~~~~~~~~~~CMAKE Config has completed successfully~~~~~~~~~~")
 
 def run_git_info() -> None:
     #TODO change to have another function called run that returns completed process
     #This is because check_call should not capture stdout
     #https://docs.python.org/3/library/subprocess.html#subprocess.run
-    #run_subprocess_and_check(["git", "rev-parse", "--abbrev-ref", "HEAD"])
-    pass
+    ret = subprocess_run(["git", "rev-parse", "--abbrev-ref", "HEAD"], subprocess.PIPE)
+    print(f"Running off branch: {ret.stdout.decode('UTF-8').rstrip()}")
 
 def run_make():
     #    make_command = ["make","-j", "{}".format(max(1, multiprocessing.cpu_count() -2))]
     #https://stackoverflow.com/questions/7031126/switching-between-gcc-and-clang-llvm-using-cmake
     pass 
-
-def run_subprocess_and_check(cmd: List[str]):
-    try:
-        subprocess.check_call(cmd)
-    except Exception as e:
-        print("\n\n")
-        print(e)
-        print("\n\n")
-        print("<-----------------------------------Exception occurred when running----------------------------------->")
-        print(" ".join(cmd))
-
-        exit(EXIT_CODE_FAIL)
 
 def save_build_config(build_info):
     pass
@@ -399,6 +387,32 @@ def setup_build_args(args_dict, project_dir: str) -> BuildInfo:
     #TODO Handle the case where the build is different then the currently active build
 
     return build_info
+
+def subprocess_check_call(cmd: List[str]):
+    try:
+        subprocess.check_call(cmd)
+    except Exception as e:
+        print("\n\n")
+        print(e)
+        print("\n\n")
+        print("<-----------------------------------Exception occurred when running----------------------------------->")
+        print(" ".join(cmd))
+
+        exit(EXIT_CODE_FAIL)
+
+
+def subprocess_run(cmd: List[str], stdout = None) -> subprocess.CompletedProcess:
+    try:
+        ret = subprocess.run(cmd, check = True, stdout=stdout)
+        return ret
+    except Exception as e:
+        print("\n\n")
+        print(e)
+        print("\n\n")
+        print("<-----------------------------------Exception occurred when running----------------------------------->")
+        print(" ".join(cmd))
+
+        exit(EXIT_CODE_FAIL)
 
 if __name__ == "__main__":
     perform_build(parse_args())
