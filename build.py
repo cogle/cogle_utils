@@ -6,20 +6,26 @@ import enum
 import json
 import argparse
 import subprocess
+import logging
 import multiprocessing
 
 from typing import Dict, List, Optional
 
-#Make sure that each key is reflected in on of the below lists
+logging.basicConfig(level=logging.DEBUG)
+
 COMPILER_FLAG_KEY = "compiler"
-BUILD_FLAG_KEY = "build"
-CMAKE_BUILD_FLAG_KEY = "cmake_build_flag"
 TESTS_FLAG_KEY = "tests"
 TSAN_FLAG_KEY = "tsan"
 ASAN_FLAG_KEY = "asan"
 CLEAN_FLAG_KEY = "clean"
+
+#Key Pairs
+BUILD_FLAG_KEY = "build"
+CMAKE_BUILD_FLAG_KEY = "cmake_build_flag"
+
 BUILD_DIR_FLAG_KEY = "cmake_build_dir"
 BUILD_DIR_CMAKE_FLAG_KEY = "cmake_build_dir_flag"
+
 
 #TODO CLEAN FLAG MAYBE ALSO STORE LAST BUILD IN JSON FILE TO RELOAD
 #TODO SUPPORT COMPILER SWITCHING VIA ENV SETTING
@@ -95,7 +101,7 @@ class BuildInfo:
         return [v for v in self.cmake_flags.values()]
 
     def get_env_vars(self) -> List[str]:
-        return list()
+        return [v for v in self.env_vars.values()]
 
     def mark_cached(self, is_cached: bool) -> None:
         self.is_cached = is_cached
@@ -262,7 +268,7 @@ def perform_build(args_dict) -> None:
     run_git_info()
 
     build_info = setup_build_args(args_dict, project_dir)
-    print(f"DEBUG\n{build_info.__dict__}")
+    logging.debug(f"{build_info.__dict__}")
 
     build_dir = build_info.get_build_dir()
 
@@ -279,74 +285,30 @@ def perform_build(args_dict) -> None:
     os.chdir(build_dir)
 
     #Run CMake Commands
-    run_cmake(os.path.join(project_dir, "CMakeLists.txt"), build_info.get_cmake_flags())
+    run_cmake(project_dir, build_info.get_cmake_flags())
+    run_make(build_info.get_env_vars())
 
-    # Create folder(if needed) and go into that directory
-    #build_dir = create_build_dir(args_dict)
-
-
-    #run_cmake(os.path.join(cur_dir, "CMakeLists.txt"), cmake_build_commands)
-    #print()
-    #run_make()
-
-
-    #try:
-    #    print("~~~~~~~~~~CMAKE Config~~~~~~~~~~")
-    #    ret = subprocess.run(cmake_command)
-    #    
-    #    if ret.returncode != 0:
-    #        print("CMake configuration FAILED")
-    #        exit(ret.returncode)
-
-    #    print()
-    #    print()
-    #    print("~~~~~~~~~~CMAKE Config has completed successfully~~~~~~~~~~")
-    #except Exception as e:
-    #    print("Error occurred will attempting to build inside CMake subprocess {}".format(e))
-    #    os.chdir(cur_dir)
-    #    exit(-1)
-
-    #try:
-    #    print("~~~~~~~~~~Running make~~~~~~~~~~")
-    #    ret = subprocess.run(make_command)
-
-    #    if ret.returncode != 0:
-    #        print("Building has FAILED")
-    #        exit(ret.returncode)
-
-    #    print()
-    #    print()
-    #    print("~~~~~~~~~~Build has completed successfully~~~~~~~~~~")
-    #except Exception as e:
-    #    print("Error occurred will attempting to build inside make subprocess {}".format(e))
-    #    os.chdir(cur_dir)
-    #    exit(-1)
-    
     os.chdir(project_dir)
 
-def run_cmake(cmake_url: str, cmake_build_commands: List[str]) -> None:
-    if not os.path.exists(cmake_url):
-        print("Unable to find CMakeLists.txt at location {}".format(cmake_url))
-        exit(EXIT_CODE_FAIL)
-
+def run_cmake(cmake_lists_dir: str, cmake_build_commands: List[str]) -> None:
     #CMake source and build directory parameters
     #https://stackoverflow.com/questions/18826789/cmake-output-build-directory
 
     print("~~~~~~~~~~CMAKE Config~~~~~~~~~~")
-    #subprocess_check_call(["cmake"] + cmake_build_commands) 
+    subprocess_check_call(["cmake"] + [f"-S{cmake_lists_dir}"] + cmake_build_commands) 
     print("~~~~~~~~~~CMAKE Config has completed successfully~~~~~~~~~~")
 
 def run_git_info() -> None:
-    #TODO change to have another function called run that returns completed process
-    #This is because check_call should not capture stdout
+    #We call run here because check_call should not capture stdout
     #https://docs.python.org/3/library/subprocess.html#subprocess.run
     ret = subprocess_run(["git", "rev-parse", "--abbrev-ref", "HEAD"], subprocess.PIPE)
     print(f"Running off branch: {ret.stdout.decode('UTF-8').rstrip()}")
 
-def run_make():
-    #    make_command = ["make","-j", "{}".format(max(1, multiprocessing.cpu_count() -2))]
+def run_make(env_args: List[str]):
     #https://stackoverflow.com/questions/7031126/switching-between-gcc-and-clang-llvm-using-cmake
-    pass 
+    print("~~~~~~~~~~Make~~~~~~~~~~")
+    subprocess_check_call(["make","-j", "{}".format(max(1, multiprocessing.cpu_count() -2))])
+    print("~~~~~~~~~~Make has completed successfully~~~~~~~~~~")
 
 def save_build_config(build_info):
     pass
@@ -392,11 +354,11 @@ def subprocess_check_call(cmd: List[str]):
     try:
         subprocess.check_call(cmd)
     except Exception as e:
-        print("\n\n")
-        print(e)
-        print("\n\n")
-        print("<-----------------------------------Exception occurred when running----------------------------------->")
-        print(" ".join(cmd))
+        logging.error("\n\n")
+        logging.error(e)
+        logging.error("\n\n")
+        logging.error("<-----------------------------------Exception occurred when running----------------------------------->")
+        logging.error(" ".join(cmd))
 
         exit(EXIT_CODE_FAIL)
 
@@ -406,11 +368,11 @@ def subprocess_run(cmd: List[str], stdout = None) -> subprocess.CompletedProcess
         ret = subprocess.run(cmd, check = True, stdout=stdout)
         return ret
     except Exception as e:
-        print("\n\n")
-        print(e)
-        print("\n\n")
-        print("<-----------------------------------Exception occurred when running----------------------------------->")
-        print(" ".join(cmd))
+        logging.error("\n\n")
+        logging.error(e)
+        logging.error("\n\n")
+        logging.error("<-----------------------------------Exception occurred when running----------------------------------->")
+        logging.error(" ".join(cmd))
 
         exit(EXIT_CODE_FAIL)
 
