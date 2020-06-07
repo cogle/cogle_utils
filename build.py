@@ -28,6 +28,7 @@ BUILD_DIR_FLAG_KEY = "cmake_build_dir"
 BUILD_DIR_CMAKE_FLAG_KEY = "cmake_build_dir_flag"
 
 # TODO SUPPORT CORES FLAG
+# TODO SUPPORT ADDITION CMAKE ARGS PASSED IN BY USER
 # TODO SUPPORT MULTIPLE BUILDS(JSON)
 # TODO MAKE SOURCE DIR CONFIGURABLE
 
@@ -45,20 +46,20 @@ UNIT_TESTS_BUILD = "-DWITH_TESTS=true"
 EXIT_CODE_FAIL = -1
 
 
-class Parser:
+class FlagsExtractor:
     @staticmethod
-    def parse_cmake_args(args_dict) -> Dict[str, str]:
+    def extract_cmake_args(args_dict):
         cmake_args = dict()
 
         for k in args_dict:
             if k in CMAKE_BUILD_ARGS_KEYS_SET:
-                cmake_args[k] = str(args_dict[k])
+                cmake_args[k] = args_dict[k]
 
         return cmake_args
 
     # TODO: The above returns an Dict[str, str] symmetric calls would be nice
     @staticmethod
-    def parse_build_env(args_dict):
+    def extract_build_env(args_dict):
         build_env = dict()
 
         for k in args_dict:
@@ -79,21 +80,29 @@ class CompilerType(enum.Enum):
 
 
 class BuildInfo:
-    def __init__(self, build_dir: str, cmake_flags: Dict[str, str], env_vars: Dict[str, str]):
+    def __init__(self, build_dir: str, do_clean: bool, cmake_flags: Dict[str, str], env_vars: Dict[str, str]):
         self.cmake_flags = cmake_flags
         self.env_vars = env_vars
         self.build_dir = build_dir
 
         self.is_cached = False
+        self.clean = do_clean
 
     def get_build_dir(self) -> str:
         return self.build_dir
+
+    def get_clean(self) -> bool:
+        return self.clean
 
     def get_cached(self) -> bool:
         return self.is_cached
 
     def get_cmake_flags(self) -> List[str]:
-        return [v for v in self.cmake_flags.values()]
+        ret = list()
+        for _, v in self.cmake_flags.items():
+            ret.append(str(v))
+
+        return ret
 
     def get_env_vars(self) -> Dict[str, str]:
         env = os.environ.copy()
@@ -197,9 +206,7 @@ def parse_args():
 
     # make clean
     if args.clean:
-        # If the clean flag is specified then early return.
         ret[CLEAN_FLAG_KEY] = True
-        return ret
     else:
         ret[CLEAN_FLAG_KEY] = False
 
@@ -280,10 +287,15 @@ def perform_build(args_dict) -> None:
 
     os.chdir(build_dir)
 
+    build_env = build_info.get_env_vars()
+
     # Run CMake Commands
-    run_cmake(project_dir, build_info.get_cmake_flags(),
-              build_info.get_env_vars())
-    run_make(build_info.get_env_vars())
+    run_cmake(project_dir, build_info.get_cmake_flags(), build_env)
+
+    if build_info.get_clean():
+        run_make_clean(build_env)
+
+    run_make(build_env)
 
     os.chdir(project_dir)
 
@@ -318,6 +330,13 @@ def run_make(env_dict: Dict[str, str]):
     print("~~~~~~~~~~Make has completed successfully~~~~~~~~~~")
 
 
+def run_make_clean(env_dict: Dict[str, str]):
+    print("~~~~~~~~~~Make Clean~~~~~~~~~~")
+    subprocess_check_call(["make", "clean"], env=env_dict)
+    print("~~~~~~~~~~Make Clean has completed successfully~~~~~~~~~~")
+
+
+
 def setup_build_args(args_dict, project_dir: str) -> BuildInfo:
     # Cases
     # 1) Parse Incoming args and setup build based upon that.
@@ -328,10 +347,10 @@ def setup_build_args(args_dict, project_dir: str) -> BuildInfo:
 
     build_dir: str = args[BUILD_DIR_FLAG_KEY]
 
-    cmake_build_commands = Parser.parse_cmake_args(args)
-    env_args = Parser.parse_build_env(args)
+    cmake_build_commands = FlagsExtractor.extract_cmake_args(args)
+    env_args = FlagsExtractor.extract_build_env(args)
 
-    build_info = BuildInfo(build_dir, cmake_build_commands, env_args)
+    build_info = BuildInfo(build_dir, args_dict[CLEAN_FLAG_KEY], cmake_build_commands, env_args)
 
     return build_info
 
