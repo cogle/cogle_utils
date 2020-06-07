@@ -42,16 +42,10 @@ ASAN_BUILD = "-DWITH_ASAN=true"
 
 UNIT_TESTS_BUILD = "-DWITH_TESTS=true"
 
-BUILD_CONFIG = ".build.conf.json"
-
 EXIT_CODE_FAIL = -1
 
 
 class Parser:
-    @staticmethod
-    def parse_build_args(args_dict) -> List[str]:
-        pass
-
     @staticmethod
     def parse_cmake_args(args_dict) -> Dict[str, str]:
         cmake_args = dict()
@@ -169,10 +163,6 @@ def check_default_args(args_dict):
                 exit(EXIT_CODE_FAIL)
 
     return validated_args_dict
-
-# TODO support multiple cached builds
-# def create_build_folder(args_dict) -> str:
-#    return "{}_{}_build".format(args_dict[COMPILER_FLAG_KEY].name, args_dict[BUILD_FLAG_KEY].name).lower()
 
 
 def parse_args():
