@@ -11,7 +11,7 @@ import multiprocessing
 
 from typing import Dict, List, Optional
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.ERROR)
 
 TESTS_FLAG_KEY = "tests"
 TSAN_FLAG_KEY = "tsan"
@@ -108,7 +108,7 @@ class BuildInfo:
                     g = which_g.stdout.decode('UTF-8').rstrip()
 
                     if len(gxx) == 0 or len(g) == 0:
-                        logging.error("GNU compiler not found")
+                        logging.critical("GNU compiler not found")
                         exit(EXIT_CODE_FAIL)
 
                     env["CC"] = g
@@ -123,13 +123,13 @@ class BuildInfo:
                     clang = which_clang.stdout.decode('UTF-8').rstrip()
 
                     if len(clangxx) == 0 or len(clang) == 0:
-                        logging.error("Clang compiler not found")
+                        logging.critical("Clang compiler not found")
                         exit(EXIT_CODE_FAIL)
 
                     env["CC"] = clang
                     env["CXX"] = clangxx
                 else:
-                    logging.error(f"Unknown compiler type {v}")
+                    logging.critical(f"Unknown compiler type {v}")
                     exit(EXIT_CODE_FAIL)
 
         return env
@@ -346,11 +346,11 @@ def subprocess_check_call(cmd: List[str], env=None):
         subprocess.check_call(cmd, env=env)
     except Exception as e:
         logging.error("\n\n")
-        logging.error(e)
+        logging.critical(e)
         logging.error("\n\n")
-        logging.error(
+        logging.critical(
             "<-----------------------------------Exception occurred when running----------------------------------->")
-        logging.error(" ".join(cmd))
+        logging.critical(" ".join(cmd))
 
         exit(EXIT_CODE_FAIL)
 
@@ -361,11 +361,11 @@ def subprocess_run(cmd: List[str], stdout=None) -> subprocess.CompletedProcess:
         return ret
     except Exception as e:
         logging.error("\n\n")
-        logging.error(e)
+        logging.critical(e)
         logging.error("\n\n")
-        logging.error(
+        logging.critical(
             "<-----------------------------------Exception occurred when running----------------------------------->")
-        logging.error(" ".join(cmd))
+        logging.critical(" ".join(cmd))
 
         exit(EXIT_CODE_FAIL)
 
