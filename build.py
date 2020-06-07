@@ -318,11 +318,6 @@ def run_make(env_dict: Dict[str, str]):
     print("~~~~~~~~~~Make has completed successfully~~~~~~~~~~")
 
 
-def save_build_config(build_info):
-    with open(BUILD_CONFIG, "w+") as f:
-        json.dump(build_info, f)
-
-
 def setup_build_args(args_dict, project_dir: str) -> BuildInfo:
     # Cases
     # 1) Parse Incoming args and setup build based upon that.
