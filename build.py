@@ -7,6 +7,7 @@ import json
 import argparse
 import subprocess
 import logging
+import shutil
 import multiprocessing
 
 from typing import Dict, List, Optional
@@ -18,6 +19,7 @@ TSAN_FLAG_KEY = "tsan"
 ASAN_FLAG_KEY = "asan"
 CLEAN_FLAG_KEY = "clean"
 COMPILER_FLAG_KEY = "compiler"
+WIPE_FLAG_KEY = "wipe"
 
 # Key Pairs
 # TODO Try to coalesce into a single flag
@@ -193,6 +195,7 @@ def parse_args():
     parser.add_argument(
         "--tests", help="Build with unit tests", action="store_true")
     parser.add_argument("--clean", help="Build clean", action="store_true")
+    parser.add_argument("--wipe", help="Wipes the build directory by removing it", action="store_true")
 
     args = parser.parse_args()
 
@@ -241,6 +244,12 @@ def parse_args():
         ret[BUILD_FLAG_KEY] = BuildType.DEBUG
         ret[CMAKE_BUILD_FLAG_KEY] = f"-DCMAKE_BUILD_TYPE={BuildType.DEBUG.name}"
 
+    # wipe
+    if args.wipe:
+        ret[WIPE_FLAG_KEY] = True
+    else:
+        ret[WIPE_FLAG_KEY] = False
+
     # tsan
     if args.tsan:
         ret[TSAN_FLAG_KEY] = TSAN_BUILD
@@ -274,6 +283,10 @@ def perform_build(args_dict) -> None:
     logging.debug(f"{build_info.__dict__}")
 
     build_dir = build_info.get_build_dir()
+
+    if args_dict[WIPE_FLAG_KEY]:
+        print(f"Clearing the build directory {build_dir}")
+        shutil.rmtree(build_dir)
 
     if not build_info.get_cached() and not os.path.exists(build_dir):
         print(f"Creating {build_dir}")
