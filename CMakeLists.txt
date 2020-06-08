@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.13.4)
 project(cogle_utils)
 
-# Move to cmake modules and read more on how todo properly
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CUSTOM_COMPILER_FLAGS "")
 
 if (WITH_TSAN) 
