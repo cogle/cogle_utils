@@ -27,8 +27,12 @@ struct Ok {
 
     template <typename T>
     [[nodiscard]] constexpr bool operator==(Ok<T> const& o) const {
-        // equality_comparable<T, U>
         return value_ == o.value_;
+    }
+
+    template <typename T>
+    [[nodiscard]] constexpr bool operator!=(Ok<T> const& o) const {
+        return value_ != o.value_;
     }
 
 private:

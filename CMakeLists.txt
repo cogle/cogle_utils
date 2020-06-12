@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13.4)
 project(cogle_utils)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CUSTOM_COMPILER_FLAGS "")
 
 if (WITH_TSAN) 

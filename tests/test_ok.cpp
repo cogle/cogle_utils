@@ -24,12 +24,10 @@ TEST_CASE("Ok Struct Primitive Types", "[result][ok]") {
 
     // Tests with the primitive types
     Ok<char> ok_char{ok_char_val};
-    REQUIRE(ok_char.get_result() == ok_char_val); 
+    REQUIRE(ok_char.get_result() == ok_char_val);
 
     Ok<int> ok_int{ok_int_val};
-    REQUIRE(ok_int.get_result() == ok_int_val); 
-
-
+    REQUIRE(ok_int.get_result() == ok_int_val);
 }
 
-}
+}  // namespace
