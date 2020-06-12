@@ -13,13 +13,26 @@ enum class ResultTag { OK = 0, ERR = 1 };
 
 template <typename R>
 struct Ok {
-  using value_type = R;
+    using value_type = R;
 
-  [[nodiscard]] constexpr Ok(R val) noexcept(std::is_nothrow_copy_constructible<R>()) : value_(val) {}
-  [[nodiscard]] constexpr Ok(R&& val) noexcept(std::is_nothrow_move_constructible<R>()) : value_(std::move(val)) {}
+    [[nodiscard]] explicit constexpr Ok(const R& val) noexcept(std::is_nothrow_copy_constructible<R>()) : value_(val) {}
+    [[nodiscard]] explicit constexpr Ok(R&& val) noexcept(std::is_nothrow_move_constructible<R>())
+        : value_(std::move(val)) {}
 
- private:
-  R value_;
+    [[nodiscard]] constexpr R& get_result() & noexcept { return value_; }
+    [[nodiscard]] constexpr R&& get_result() && noexcept { return std::move(value_); }
+
+    [[nodiscard]] constexpr const R& get_result() const& noexcept { return value_; }
+    [[nodiscard]] constexpr const R&& get_result() const&& noexcept { return value_; }
+
+    template <typename T>
+    [[nodiscard]] constexpr bool operator==(Ok<T> const& o) const {
+        // equality_comparable<T, U>
+        return value_ == o.value_;
+    }
+
+private:
+    R value_;
 };
 
 template <typename T, typename E>
