@@ -26,12 +26,14 @@ struct Ok {
     [[nodiscard]] constexpr const R&& get_result() const&& noexcept { return value_; }
 
     template <typename T>
-    [[nodiscard]] constexpr bool operator==(Ok<T> const& o) const {
+    [[nodiscard]] constexpr bool operator==(const Ok<T>& o) const {
+        static_assert(traits::is_comparable_with<R, T>{}, "Equality operator requires comparability");
         return value_ == o.value_;
     }
 
     template <typename T>
-    [[nodiscard]] constexpr bool operator!=(Ok<T> const& o) const {
+    [[nodiscard]] constexpr bool operator!=(const Ok<T>& o) const {
+        static_assert(traits::is_comparable_with<R, T>{}, "Inequality operator requires comparability");
         return value_ != o.value_;
     }
 
