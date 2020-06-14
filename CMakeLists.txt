@@ -4,14 +4,25 @@ project(cogle_utils)
 set(CMAKE_CXX_STANDARD 17)
 set(CUSTOM_COMPILER_FLAGS "")
 
-if (WITH_TSAN) 
-    message(STATUS "Building with TSAN")
-endif(WITH_TSAN)
+###################################
+#                                 # 
+#     Configuration Options       #
+#                                 #
+###################################
 
-if (WITH_ASAN)
-    message(STATUS "Building with ASAN")
+option(WITH_TSAN  "Build with TSAN" OFF) 
+option(WITH_ASAN  "Build with ASAN" OFF)
+option(WITH_TESTS "Build with Unit Tests" OFF)
+
+message(STATUS "Build WITH_TSAN: " ${WITH_TSAN})
+message(STATUS "BUILD WITH_ASAN: " ${WITH_ASAN})
+message(STATUS "BUILD WITH_TESTS: " ${WITH_TESTS})
+
+if(WITH_ASAN)
     set(CUSTOM_COMPILER_FLAGS "${CUSTOM_COMPILER_FLAGS} -fsanitize=address")
 endif(WITH_ASAN)
+
+SET(THIRD_PARTY_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 
 set(LIB_TARGET cogle_utils)
 add_library(${LIB_TARGET} INTERFACE)
@@ -22,24 +33,5 @@ target_include_directories(${LIB_TARGET} INTERFACE
 )
 
 if (WITH_TESTS)
-    message(STATUS "Building and executing tests")
-    # Enable testing
-    enable_testing()
-
-    set(TEST_TARGET "utils_unit_tests")
-    set(TEST_SOURCES
-        tests/test_ok.cpp
-        tests/main.cpp
-    )
-
-    add_executable(${TEST_TARGET} ${TEST_SOURCES})
-
-    target_include_directories(
-        ${TEST_TARGET}
-        PRIVATE
-        include/
-        third_party/
-    )
-
-    add_test(${TEST_TARGET}, ${TEST_TARGET})
+    add_subdirectory(tests/)
 endif(WITH_TESTS)

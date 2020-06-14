@@ -19,6 +19,12 @@ struct Ok {
     [[nodiscard]] explicit constexpr Ok(R&& val) noexcept(std::is_nothrow_move_constructible<R>())
         : value_(std::move(val)) {}
 
+    constexpr Ok(Ok&&) = default;
+    constexpr Ok& operator=(Ok&&) = default;
+
+    constexpr Ok(Ok const&) = default;
+    constexpr Ok& operator=(Ok const&) = default;
+
     [[nodiscard]] constexpr R& get_result() & noexcept { return value_; }
     [[nodiscard]] constexpr R&& get_result() && noexcept { return std::move(value_); }
 
