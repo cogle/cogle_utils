@@ -22,3 +22,5 @@ target_link_libraries(
     PUBLIC
     cogle_utils::lib
 )
+
+add_test(NAME UtilsUnitTests COMMAND ${TEST_TARGET} -s)

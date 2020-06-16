@@ -33,5 +33,6 @@ target_include_directories(${LIB_TARGET} INTERFACE
 )
 
 if (WITH_TESTS)
+    enable_testing()
     add_subdirectory(tests/)
 endif(WITH_TESTS)

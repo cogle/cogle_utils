@@ -148,6 +148,9 @@ class BuildInfo:
     def mark_cached(self, is_cached: bool) -> None:
         self.is_cached = is_cached
 
+    def run_tests(self) -> bool:
+        return TESTS_FLAG_KEY in self.cmake_flags
+
 
 def check_default_args(args_dict):
     """Ensure that the passed in args from the user have the proper
@@ -310,10 +313,14 @@ def perform_build(args_dict) -> None:
 
     run_make(build_env)
 
+    if build_info.run_tests():
+        run_tests()
+
     os.chdir(project_dir)
 
-    if not build_info.get_cached():
-        pass
+
+def print_new_line(num_lines: int = 5):
+    print("\n"*num_lines)
 
 
 def run_cmake(cmake_lists_dir: str, cmake_build_commands: List[str], env_args: Dict[str, str]) -> None:
@@ -325,6 +332,7 @@ def run_cmake(cmake_lists_dir: str, cmake_build_commands: List[str], env_args: D
     subprocess_check_call(
         ["cmake"] + [f"-S{cmake_lists_dir}"] + cmake_build_commands, env=env_args)
     print("~~~~~~~~~~CMAKE Config has completed successfully~~~~~~~~~~")
+    print_new_line()
 
 
 def run_git_info() -> None:
@@ -341,13 +349,19 @@ def run_make(env_dict: Dict[str, str]):
     subprocess_check_call(
         ["make", "-j", "{}".format(max(1, multiprocessing.cpu_count() - 2))], env=env_dict)
     print("~~~~~~~~~~Make has completed successfully~~~~~~~~~~")
+    print_new_line()
 
 
 def run_make_clean(env_dict: Dict[str, str]):
     print("~~~~~~~~~~Make Clean~~~~~~~~~~")
     subprocess_check_call(["make", "clean"], env=env_dict)
     print("~~~~~~~~~~Make Clean has completed successfully~~~~~~~~~~")
+    print_new_line()
 
+
+def run_tests():
+    print("<-----------------------Running Unit Tests----------------------->")
+    subprocess_check_call(["ctest", "--verbose"])
 
 
 def setup_build_args(args_dict, project_dir: str) -> BuildInfo:
