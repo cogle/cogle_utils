@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 format_find_command() {
     local list=$1 
     local path=$2
@@ -16,7 +15,6 @@ format_find_command() {
     return 0
 }
 
-
 cur_dir="."
 
 # Add any directory you would like excluded from 
@@ -29,5 +27,6 @@ for file in $files_to_format
 do
     if [[ "${file}" =~ ".hxx" || "${file}" =~ ".cxx" ]] ; then
         echo "Formatting ${file}"
+        clang-format -style=file ${file} -i
     fi
 done
