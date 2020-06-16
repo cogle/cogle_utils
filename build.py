@@ -29,6 +29,7 @@ CMAKE_BUILD_FLAG_KEY = "cmake_build_flag"
 BUILD_DIR_FLAG_KEY = "cmake_build_dir"
 BUILD_DIR_CMAKE_FLAG_KEY = "cmake_build_dir_flag"
 
+# TODO LOOK INTO FORMATTING FOR THE VARIOUS STEP OUTPUTS SO THE ALIGN NICE
 # TODO SUPPORT CORES FLAG
 # TODO SUPPORT ADDITION CMAKE ARGS PASSED IN BY USER
 # TODO SUPPORT MULTIPLE BUILDS(JSON)
@@ -319,7 +320,7 @@ def perform_build(args_dict) -> None:
     os.chdir(project_dir)
 
 
-def print_new_line(num_lines: int = 5):
+def print_new_line(num_lines: int = 1):
     print("\n"*num_lines)
 
 
