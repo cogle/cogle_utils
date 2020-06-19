@@ -11,6 +11,13 @@ namespace detail {
 enum class ResultTag { OK = 0, ERR = 1 };
 }  // namespace detail
 
+// Forward declare Ok
+template <typename R>
+struct Ok;
+
+template <typename E>
+struct Err;
+
 template <typename R>
 struct Ok {
     using value_type = R;
@@ -45,6 +52,43 @@ struct Ok {
 
 private:
     R value_;
+};
+
+template <typename E>
+struct Err {
+    using value_type = E;
+
+    [[nodiscard]] explicit constexpr Err(const E& val) noexcept(std::is_nothrow_copy_constructible<E>())
+        : error_(val) {}
+    [[nodiscard]] explicit constexpr Err(E&& val) noexcept(std::is_nothrow_move_constructible<E>())
+        : error_(std::move(val)) {}
+
+    constexpr Err(Err&&) = default;
+    constexpr Err& operator=(Err&&) = default;
+
+    constexpr Err(Err const&) = default;
+    constexpr Err& operator=(Err const&) = default;
+
+    [[nodiscard]] constexpr E& get_error() & noexcept { return error_; }
+    [[nodiscard]] constexpr E&& get_error() && noexcept { return std::move(error_); }
+
+    [[nodiscard]] constexpr const E& get_error() const& noexcept { return error_; }
+    [[nodiscard]] constexpr const E&& get_error() const&& noexcept { return error_; }
+
+    template <typename T>
+    [[nodiscard]] constexpr bool operator==(const Err<T>& o) const {
+        static_assert(traits::is_comparable_with<E, T>{}, "Equality operator requires comparability");
+        return error_ == o.error_;
+    }
+
+    template <typename T>
+    [[nodiscard]] constexpr bool operator!=(const Err<T>& o) const {
+        static_assert(traits::is_comparable_with<E, T>{}, "Inequality operator requires comparability");
+        return error_ != o.error_;
+    }
+
+private:
+    E error_;
 };
 
 template <typename T, typename E>
