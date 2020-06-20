@@ -10,6 +10,7 @@ import logging
 import shutil
 import multiprocessing
 
+from pathlib import Path
 from typing import Dict, List, Optional
 
 logging.basicConfig(level=logging.ERROR)
@@ -30,6 +31,7 @@ CMAKE_BUILD_FLAG_KEY = "cmake_build_flag"
 BUILD_DIR_FLAG_KEY = "cmake_build_dir"
 BUILD_DIR_CMAKE_FLAG_KEY = "cmake_build_dir_flag"
 
+# TODO PUT EACH CMD in array for debugging purposes(subprocess)
 # TODO SUPPORT CORES FLAG
 # TODO SUPPORT ADDITION CMAKE ARGS PASSED IN BY USER
 # TODO SUPPORT MULTIPLE BUILDS(JSON)
@@ -51,6 +53,8 @@ UNIT_TESTS_BUILD = "-DWITH_TESTS=true"
 EXIT_CODE_FAIL = -1
 
 DEFAULT_LINE_WIDTH = 100
+
+COVERAGE_EXCLUDES_LIST = ["*third_party/*"]
 
 
 class FlagsExtractor:
@@ -152,6 +156,9 @@ class BuildInfo:
 
     def mark_cached(self, is_cached: bool) -> None:
         self.is_cached = is_cached
+
+    def run_code_coverage(self) -> bool:
+        return GCOV_FLAG_KEY in self.cmake_flags
 
     def run_tests(self) -> bool:
         return TESTS_FLAG_KEY in self.cmake_flags
@@ -303,7 +310,7 @@ def perform_build(args_dict) -> None:
 
     build_dir = build_info.get_build_dir()
 
-    if args_dict[WIPE_FLAG_KEY]:
+    if args_dict[WIPE_FLAG_KEY] and os.path.exists(build_dir):
         print(f"Clearing the build directory {build_dir}")
         shutil.rmtree(build_dir)
 
@@ -332,6 +339,21 @@ def perform_build(args_dict) -> None:
     if build_info.run_tests():
         run_tests()
 
+    if build_info.run_code_coverage():
+        # Clean previous coverage report
+        coverage_report_dir = Path(build_dir) / "coverage"
+        if os.path.exists(coverage_report_dir):
+            print("Removing previous coverage report directory")
+            shutil.rmtree(coverage_report_dir)
+
+        os.mkdir(coverage_report_dir)
+
+        coverage_file_url = coverage_report_dir / "coverage.info"
+        report_out_dir = coverage_report_dir / "out"
+
+        run_lcov(project_dir, str(build_dir), str(coverage_file_url))
+        run_genhtml(str(coverage_file_url), str(report_out_dir))
+
     os.chdir(project_dir)
 
 
@@ -348,6 +370,20 @@ def run_cmake(cmake_lists_dir: str, cmake_build_commands: List[str], env_args: D
         ["cmake"] + [f"-S{cmake_lists_dir}"] + cmake_build_commands, env=env_args)
     format_build_str("CMAKE Config has completed successfully", fill_char="~")
     print_new_line()
+
+
+def run_genhtml(coverage_file_url: str, report_out_dir: str) -> None:
+    format_build_str("Running genhtml", fill_char="~")
+    subprocess_check_call(
+        ["genhtml", coverage_file_url,  "--output-directory", report_out_dir])
+    format_build_str("LCOV has completed successfully", fill_char="~")
+
+
+def run_lcov(project_directory: str, build_dir: str, coverage_file_url: str, excludes_dirs: List[str] = COVERAGE_EXCLUDES_LIST) -> None:
+    format_build_str("Running LCOV", fill_char="~")
+    subprocess_check_call(["lcov", "--capture", "--directory", build_dir, "--output-file",
+                           coverage_file_url, "--no-external", "--base-directory", project_directory, "--exclude"] + excludes_dirs)
+    format_build_str("LCOV has completed successfully", fill_char="~")
 
 
 def run_git_info() -> None:
