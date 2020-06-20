@@ -49,6 +49,7 @@ EXIT_CODE_FAIL = -1
 
 DEFAULT_LINE_WIDTH = 100
 
+
 class FlagsExtractor:
     @staticmethod
     def extract_cmake_args(args_dict):
@@ -183,6 +184,7 @@ def check_default_args(args_dict):
 def format_build_str(print_str: str, line_len: int = DEFAULT_LINE_WIDTH, fill_char: str = "#") -> None:
     print(print_str.center(line_len, fill_char))
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -202,7 +204,8 @@ def parse_args():
     parser.add_argument(
         "--tests", help="Build with unit tests", action="store_true")
     parser.add_argument("--clean", help="Build clean", action="store_true")
-    parser.add_argument("--wipe", help="Wipes the build directory by removing it", action="store_true")
+    parser.add_argument(
+        "--wipe", help="Wipes the build directory by removing it", action="store_true")
 
     args = parser.parse_args()
 
@@ -380,7 +383,8 @@ def setup_build_args(args_dict, project_dir: str) -> BuildInfo:
     cmake_build_commands = FlagsExtractor.extract_cmake_args(args)
     env_args = FlagsExtractor.extract_build_env(args)
 
-    build_info = BuildInfo(build_dir, args_dict[CLEAN_FLAG_KEY], cmake_build_commands, env_args)
+    build_info = BuildInfo(
+        build_dir, args_dict[CLEAN_FLAG_KEY], cmake_build_commands, env_args)
 
     return build_info
 
