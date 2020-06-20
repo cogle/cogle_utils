@@ -13,22 +13,23 @@ set(CUSTOM_LINKER_FLAGS "")
 
 option(WITH_TSAN     "Build with TSAN" OFF) 
 option(WITH_ASAN     "Build with ASAN" OFF)
+option(WITH_GCOV     "Build with GCOV Code Coverage" OFF)
 option(WITH_TESTS    "Build with Unit Tests" OFF)
-option(WITH_COVERAGE "Build with Code Coverage" OFF)
 
 message(STATUS "Build WITH_TSAN: " ${WITH_TSAN})
 message(STATUS "BUILD WITH_ASAN: " ${WITH_ASAN})
+message(STATUS "BUILD WITH_GCOV: " ${WITH_GCOV})
 message(STATUS "BUILD WITH_TESTS: " ${WITH_TESTS})
-message(STATUS "BUILD WITH_COVERAGE: " ${WITH_COVERAGE})
 
 if(WITH_ASAN)
     set(CUSTOM_COMPILER_FLAGS ${CUSTOM_COMPILER_FLAGS} -fsanitize=address)
     set(CUSTOM_LINKER_FLAGS ${CUSTOM_LINKER_FLAGS} -fsanitize=address)
 endif(WITH_ASAN)
 
-if(WITH_COVERAGE)
+if(WITH_GCOV)
     set(CUSTOM_COMPILER_FLAGS ${CUSTOM_COMPILER_FLAGS} -O0 -g -fprofile-arcs -ftest-coverage)
-endif(WITH_COVERAGE)
+    set(CUSTOM_LINKER_FLAGS ${CUSTOM_LINKER_FLAGS} -lgcov)
+endif(WITH_GCOV)
 
 SET(THIRD_PARTY_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 

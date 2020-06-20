@@ -20,6 +20,7 @@ ASAN_FLAG_KEY = "asan"
 CLEAN_FLAG_KEY = "clean"
 COMPILER_FLAG_KEY = "compiler"
 WIPE_FLAG_KEY = "wipe"
+GCOV_FLAG_KEY = "gcov"
 
 # Key Pairs
 # TODO Try to coalesce into a single flag
@@ -35,13 +36,15 @@ BUILD_DIR_CMAKE_FLAG_KEY = "cmake_build_dir_flag"
 # TODO MAKE SOURCE DIR CONFIGURABLE
 
 CMAKE_BUILD_ARGS_KEYS_SET = {CMAKE_BUILD_FLAG_KEY, TESTS_FLAG_KEY,
-                             TSAN_FLAG_KEY, ASAN_FLAG_KEY, BUILD_DIR_CMAKE_FLAG_KEY}
+                             TSAN_FLAG_KEY, ASAN_FLAG_KEY, BUILD_DIR_CMAKE_FLAG_KEY, GCOV_FLAG_KEY}
 BUILD_ENV_KEYS_SET = {COMPILER_FLAG_KEY}
 
 REQUIRED_KEYS = {BUILD_FLAG_KEY, BUILD_DIR_FLAG_KEY, COMPILER_FLAG_KEY}
 
+# Add your CMake Flags here
 TSAN_BUILD = "-DWITH_TSAN=true"
 ASAN_BUILD = "-DWITH_ASAN=true"
+GCOV_BUILD = "-DWITH_GCOV=true"
 
 UNIT_TESTS_BUILD = "-DWITH_TESTS=true"
 
@@ -198,6 +201,8 @@ def parse_args():
     parser.add_argument(
         "--asan", help="Build using asan utility to check memory safety", action="store_true")
     parser.add_argument(
+        "--gcov", help="Build using gcov utility to check code coverage", action="store_true")
+    parser.add_argument(
         "--debug", help="Build using debug version(default)", action="store_true")
     parser.add_argument(
         "--release", help="Build using release version", action="store_true")
@@ -267,6 +272,10 @@ def parse_args():
     # asan
     if args.asan:
         ret[ASAN_FLAG_KEY] = ASAN_BUILD
+
+    # asan
+    if args.gcov:
+        ret[GCOV_FLAG_KEY] = GCOV_BUILD
 
     # unit tests
     if args.tests:
