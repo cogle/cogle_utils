@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13.4)
 project(cogle_utils)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CUSTOM_COMPILER_FLAGS -Wall -Wextra -Wconversion -Werror)
+set(CUSTOM_COMPILER_FLAGS -Wall -Wextra -Wconversion -Werror -Wshadow -Wundef)
 set(CUSTOM_LINKER_FLAGS "")
 
 ###################################
