@@ -33,7 +33,7 @@ TEST_CASE("Ok Struct Primitive Types", "[result][ok]") {
     }
 
     SECTION("Ok struct float") {
-        constexpr float ok_float_val = 430.50131;
+        constexpr float ok_float_val = 430.50131f;
         Ok<float> ok_float{ok_float_val};
         REQUIRE(ok_float.get_result() == ok_float_val);
     }

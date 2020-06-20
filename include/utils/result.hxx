@@ -120,12 +120,35 @@ private:
 
 template <typename R, typename E>
 class Result {
+    using result_tag = detail::ResultTag;
+
 public:
+    using result_type = R;
+    using error_type = E;
+
+    [[nodiscard]] explicit constexpr Result(const Ok<R>& ok) noexcept(std::is_nothrow_copy_constructible<Ok<R>>())
+        : tag_(result_tag::OK), ok_(ok) {}
+
+    [[nodiscard]] explicit constexpr Result(const Ok<R>&& ok) noexcept(std::is_nothrow_move_constructible<Ok<R>>())
+        : tag_(result_tag::OK), ok_(std::move(ok)) {}
+
+    [[nodiscard]] explicit constexpr Result(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible<Err<E>>())
+        : tag_(result_tag::ERR), err_(err) {}
+
+    [[nodiscard]] explicit constexpr Result(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<Err<E>>())
+        : tag_(result_tag::ERR), err_(std::move(err)) {}
+
+    constexpr bool is_ok() { return tag_ == result_tag::OK; }
+
+    constexpr bool is_err() { return tag_ == result_tag::ERR; }
+
 private:
+    detail::ResultTag tag_;
+
     union {
         Ok<R> ok_;
         Err<E> err_;
-    } val_;
+    };
 };
 
 }  // namespace result
