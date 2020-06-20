@@ -10,6 +10,7 @@ import logging
 import shutil
 import multiprocessing
 
+from pathlib import Path
 from typing import Dict, List, Optional
 
 logging.basicConfig(level=logging.ERROR)
@@ -20,6 +21,7 @@ ASAN_FLAG_KEY = "asan"
 CLEAN_FLAG_KEY = "clean"
 COMPILER_FLAG_KEY = "compiler"
 WIPE_FLAG_KEY = "wipe"
+GCOV_FLAG_KEY = "gcov"
 
 # Key Pairs
 # TODO Try to coalesce into a single flag
@@ -29,24 +31,30 @@ CMAKE_BUILD_FLAG_KEY = "cmake_build_flag"
 BUILD_DIR_FLAG_KEY = "cmake_build_dir"
 BUILD_DIR_CMAKE_FLAG_KEY = "cmake_build_dir_flag"
 
-# TODO LOOK INTO FORMATTING FOR THE VARIOUS STEP OUTPUTS SO THE ALIGN NICE
+# TODO PUT EACH CMD in array for debugging purposes(subprocess)
 # TODO SUPPORT CORES FLAG
 # TODO SUPPORT ADDITION CMAKE ARGS PASSED IN BY USER
 # TODO SUPPORT MULTIPLE BUILDS(JSON)
 # TODO MAKE SOURCE DIR CONFIGURABLE
 
 CMAKE_BUILD_ARGS_KEYS_SET = {CMAKE_BUILD_FLAG_KEY, TESTS_FLAG_KEY,
-                             TSAN_FLAG_KEY, ASAN_FLAG_KEY, BUILD_DIR_CMAKE_FLAG_KEY}
+                             TSAN_FLAG_KEY, ASAN_FLAG_KEY, BUILD_DIR_CMAKE_FLAG_KEY, GCOV_FLAG_KEY}
 BUILD_ENV_KEYS_SET = {COMPILER_FLAG_KEY}
 
 REQUIRED_KEYS = {BUILD_FLAG_KEY, BUILD_DIR_FLAG_KEY, COMPILER_FLAG_KEY}
 
+# Add your CMake Flags here
 TSAN_BUILD = "-DWITH_TSAN=true"
 ASAN_BUILD = "-DWITH_ASAN=true"
+GCOV_BUILD = "-DWITH_GCOV=true"
 
 UNIT_TESTS_BUILD = "-DWITH_TESTS=true"
 
 EXIT_CODE_FAIL = -1
+
+DEFAULT_LINE_WIDTH = 100
+
+COVERAGE_EXCLUDES_LIST = ["*third_party/*", "*/tests/*"]
 
 
 class FlagsExtractor:
@@ -149,6 +157,9 @@ class BuildInfo:
     def mark_cached(self, is_cached: bool) -> None:
         self.is_cached = is_cached
 
+    def run_code_coverage(self) -> bool:
+        return GCOV_FLAG_KEY in self.cmake_flags
+
     def run_tests(self) -> bool:
         return TESTS_FLAG_KEY in self.cmake_flags
 
@@ -180,6 +191,20 @@ def check_default_args(args_dict):
     return validated_args_dict
 
 
+def format_build_str(print_str: str, line_len: int = DEFAULT_LINE_WIDTH, fill_char: str = "#") -> None:
+    print(print_str.center(line_len, fill_char))
+
+
+def generate_lcov_excludes(excludes_list: List[str]) -> List[str]:
+    ret = list()
+
+    for exclusion in excludes_list:
+        ret.append("--exclude")
+        ret.append(exclusion)
+
+    return ret
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -193,13 +218,16 @@ def parse_args():
     parser.add_argument(
         "--asan", help="Build using asan utility to check memory safety", action="store_true")
     parser.add_argument(
+        "--gcov", help="Build using gcov utility to check code coverage", action="store_true")
+    parser.add_argument(
         "--debug", help="Build using debug version(default)", action="store_true")
     parser.add_argument(
         "--release", help="Build using release version", action="store_true")
     parser.add_argument(
         "--tests", help="Build with unit tests", action="store_true")
     parser.add_argument("--clean", help="Build clean", action="store_true")
-    parser.add_argument("--wipe", help="Wipes the build directory by removing it", action="store_true")
+    parser.add_argument(
+        "--wipe", help="Wipes the build directory by removing it", action="store_true")
 
     args = parser.parse_args()
 
@@ -262,6 +290,10 @@ def parse_args():
     if args.asan:
         ret[ASAN_FLAG_KEY] = ASAN_BUILD
 
+    # asan
+    if args.gcov:
+        ret[GCOV_FLAG_KEY] = GCOV_BUILD
+
     # unit tests
     if args.tests:
         ret[TESTS_FLAG_KEY] = UNIT_TESTS_BUILD
@@ -288,7 +320,7 @@ def perform_build(args_dict) -> None:
 
     build_dir = build_info.get_build_dir()
 
-    if args_dict[WIPE_FLAG_KEY]:
+    if args_dict[WIPE_FLAG_KEY] and os.path.exists(build_dir):
         print(f"Clearing the build directory {build_dir}")
         shutil.rmtree(build_dir)
 
@@ -317,6 +349,21 @@ def perform_build(args_dict) -> None:
     if build_info.run_tests():
         run_tests()
 
+    if build_info.run_code_coverage():
+        # Clean previous coverage report
+        coverage_report_dir = Path(build_dir) / "coverage"
+        if os.path.exists(coverage_report_dir):
+            print("Removing previous coverage report directory")
+            shutil.rmtree(coverage_report_dir)
+
+        os.mkdir(coverage_report_dir)
+
+        coverage_file_url = coverage_report_dir / "coverage.info"
+        report_out_dir = coverage_report_dir / "out"
+
+        run_lcov(project_dir, str(build_dir), str(coverage_file_url))
+        run_genhtml(str(coverage_file_url), str(report_out_dir))
+
     os.chdir(project_dir)
 
 
@@ -328,12 +375,25 @@ def run_cmake(cmake_lists_dir: str, cmake_build_commands: List[str], env_args: D
     # CMake source and build directory parameters
     # https://stackoverflow.com/questions/18826789/cmake-output-build-directory
     logging.debug(f"CMake {cmake_build_commands}")
-
-    print("~~~~~~~~~~CMAKE Config~~~~~~~~~~")
+    format_build_str("CMAKE Config", fill_char="~")
     subprocess_check_call(
         ["cmake"] + [f"-S{cmake_lists_dir}"] + cmake_build_commands, env=env_args)
-    print("~~~~~~~~~~CMAKE Config has completed successfully~~~~~~~~~~")
+    format_build_str("CMAKE Config has completed successfully", fill_char="~")
     print_new_line()
+
+
+def run_genhtml(coverage_file_url: str, report_out_dir: str) -> None:
+    format_build_str("Running genhtml", fill_char="~")
+    subprocess_check_call(
+        ["genhtml", coverage_file_url,  "--output-directory", report_out_dir])
+    format_build_str("LCOV has completed successfully", fill_char="~")
+
+
+def run_lcov(project_directory: str, build_dir: str, coverage_file_url: str, excludes_dirs: List[str] = COVERAGE_EXCLUDES_LIST) -> None:
+    format_build_str("Running LCOV", fill_char="~")
+    subprocess_check_call(["lcov", "--capture", "--directory", build_dir, "--output-file",
+                           coverage_file_url, "--no-external", "--base-directory", project_directory] + generate_lcov_excludes(excludes_dirs))
+    format_build_str("LCOV has completed successfully", fill_char="~")
 
 
 def run_git_info() -> None:
@@ -346,22 +406,22 @@ def run_git_info() -> None:
 
 def run_make(env_dict: Dict[str, str]):
     # https://stackoverflow.com/questions/7031126/switching-between-gcc-and-clang-llvm-using-cmake
-    print("~~~~~~~~~~Make~~~~~~~~~~")
+    format_build_str("Make", fill_char="~")
     subprocess_check_call(
         ["make", "-j", "{}".format(max(1, multiprocessing.cpu_count() - 2))], env=env_dict)
-    print("~~~~~~~~~~Make has completed successfully~~~~~~~~~~")
+    format_build_str("Make has completed successfully", fill_char="~")
     print_new_line()
 
 
 def run_make_clean(env_dict: Dict[str, str]):
-    print("~~~~~~~~~~Make Clean~~~~~~~~~~")
+    format_build_str("Make Clean", fill_char="~")
     subprocess_check_call(["make", "clean"], env=env_dict)
-    print("~~~~~~~~~~Make Clean has completed successfully~~~~~~~~~~")
+    format_build_str("Make Clean has completed successfully", fill_char="~")
     print_new_line()
 
 
 def run_tests():
-    print("<-----------------------Running Unit Tests----------------------->")
+    format_build_str("Running Unit Tests", fill_char="-")
     subprocess_check_call(["ctest", "--verbose"])
 
 
@@ -378,7 +438,8 @@ def setup_build_args(args_dict, project_dir: str) -> BuildInfo:
     cmake_build_commands = FlagsExtractor.extract_cmake_args(args)
     env_args = FlagsExtractor.extract_build_env(args)
 
-    build_info = BuildInfo(build_dir, args_dict[CLEAN_FLAG_KEY], cmake_build_commands, env_args)
+    build_info = BuildInfo(
+        build_dir, args_dict[CLEAN_FLAG_KEY], cmake_build_commands, env_args)
 
     return build_info
 
