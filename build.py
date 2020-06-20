@@ -54,7 +54,7 @@ EXIT_CODE_FAIL = -1
 
 DEFAULT_LINE_WIDTH = 100
 
-COVERAGE_EXCLUDES_LIST = ["*third_party/*"]
+COVERAGE_EXCLUDES_LIST = ["*third_party/*", "*/tests/*"]
 
 
 class FlagsExtractor:
@@ -193,6 +193,16 @@ def check_default_args(args_dict):
 
 def format_build_str(print_str: str, line_len: int = DEFAULT_LINE_WIDTH, fill_char: str = "#") -> None:
     print(print_str.center(line_len, fill_char))
+
+
+def generate_lcov_excludes(excludes_list: List[str]) -> List[str]:
+    ret = list()
+
+    for exclusion in excludes_list:
+        ret.append("--exclude")
+        ret.append(exclusion)
+
+    return ret
 
 
 def parse_args():
@@ -382,7 +392,7 @@ def run_genhtml(coverage_file_url: str, report_out_dir: str) -> None:
 def run_lcov(project_directory: str, build_dir: str, coverage_file_url: str, excludes_dirs: List[str] = COVERAGE_EXCLUDES_LIST) -> None:
     format_build_str("Running LCOV", fill_char="~")
     subprocess_check_call(["lcov", "--capture", "--directory", build_dir, "--output-file",
-                           coverage_file_url, "--no-external", "--base-directory", project_directory, "--exclude"] + excludes_dirs)
+                           coverage_file_url, "--no-external", "--base-directory", project_directory] + generate_lcov_excludes(excludes_dirs))
     format_build_str("LCOV has completed successfully", fill_char="~")
 
 

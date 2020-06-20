@@ -45,6 +45,58 @@ TEST_CASE("Ok Struct Primitive Types", "[result][ok]") {
     }
 }
 
+TEST_CASE("Ok Struct Primitive Types constexpr", "[result][ok]") {
+    // Tests with the primitive types
+
+    SECTION("Ok Struct char") {
+        constexpr char ok_char_val = 'C';
+        constexpr Ok<char> ok_char{ok_char_val};
+        static_assert(ok_char.get_result() == ok_char_val);
+
+        REQUIRE(ok_char.get_result() == ok_char_val);
+    }
+
+    SECTION("Ok struct short") {
+        constexpr short ok_short_val = -2031;
+        constexpr Ok<short> ok_short{ok_short_val};
+        static_assert(ok_short.get_result() == ok_short_val);
+
+        REQUIRE(ok_short.get_result() == ok_short_val);
+    }
+
+    SECTION("Ok struct int") {
+        constexpr int ok_int_val = 93011;
+        constexpr Ok<int> ok_int{ok_int_val};
+        static_assert(ok_int.get_result() == ok_int_val);
+
+        REQUIRE(ok_int.get_result() == ok_int_val);
+    }
+
+    SECTION("Ok struct long") {
+        constexpr long ok_long_val = -5001132;
+        constexpr Ok<long> ok_long{ok_long_val};
+        static_assert(ok_long.get_result() == ok_long_val);
+
+        REQUIRE(ok_long.get_result() == ok_long_val);
+    }
+
+    SECTION("Ok struct float") {
+        constexpr float ok_float_val = 430.50131f;
+        constexpr Ok<float> ok_float{ok_float_val};
+        static_assert(ok_float.get_result() == ok_float_val);
+
+        REQUIRE(ok_float.get_result() == ok_float_val);
+    }
+
+    SECTION("Ok struct double") {
+        constexpr double ok_double_val = 851045.10021;
+        constexpr Ok<double> ok_double{ok_double_val};
+        static_assert(ok_double.get_result() == ok_double_val);
+
+        REQUIRE(ok_double.get_result() == ok_double_val);
+    }
+}
+
 TEST_CASE("Ok Struct Equality and Inequality Primitive Types", "[result][ok]") {
     SECTION("Ok struct char Equality and Inequality") {
         constexpr char ok_char_val_a = 'a';
