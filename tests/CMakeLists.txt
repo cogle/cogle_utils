@@ -6,6 +6,7 @@ message(STATUS "Building Unit Tests")
 set(TEST_TARGET "utils_unit_tests")
 set(TEST_SOURCES
     test_ok.cpp
+    test_err.cpp
     main.cpp
 )
 

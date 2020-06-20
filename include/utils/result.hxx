@@ -18,6 +18,9 @@ struct Ok;
 template <typename E>
 struct Err;
 
+template <typename T, typename E>
+class Result;
+
 template <typename R>
 struct Ok {
     using value_type = R;
@@ -48,6 +51,18 @@ struct Ok {
     [[nodiscard]] constexpr bool operator!=(const Ok<T>& o) const {
         static_assert(traits::is_comparable_with<R, T>{}, "Inequality operator requires comparability");
         return value_ != o.value_;
+    }
+
+    template <typename T>
+    [[nodiscard]] constexpr bool operator==(const Err<T>&) const {
+        static_assert(traits::is_comparable_with<R, T>{}, "Equality operator requires comparability");
+        return false;
+    }
+
+    template <typename T>
+    [[nodiscard]] constexpr bool operator!=(const Err<T>&) const {
+        static_assert(traits::is_comparable_with<R, T>{}, "Inequality operator requires comparability");
+        return true;
     }
 
 private:
@@ -87,15 +102,31 @@ struct Err {
         return error_ != o.error_;
     }
 
+    template <typename T>
+    [[nodiscard]] constexpr bool operator==(const Ok<T>&) const {
+        static_assert(traits::is_comparable_with<E, T>{}, "Equality operator requires comparability");
+        return false;
+    }
+
+    template <typename T>
+    [[nodiscard]] constexpr bool operator!=(const Ok<T>) const {
+        static_assert(traits::is_comparable_with<E, T>{}, "Inequality operator requires comparability");
+        return true;
+    }
+
 private:
     E error_;
 };
 
-template <typename T, typename E>
-class Result;
-
-template <typename T, typename E>
-class Result {};
+template <typename R, typename E>
+class Result {
+public:
+private:
+    union {
+        Ok<R> ok_;
+        Err<E> err_;
+    } val_;
+};
 
 }  // namespace result
 }  // namespace utils
