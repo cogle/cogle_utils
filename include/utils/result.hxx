@@ -9,6 +9,13 @@ namespace result {
 
 namespace detail {
 enum class ResultTag { OK = 0, ERR = 1 };
+
+template <typename Result>
+using extract_ok_t = typename Result::result_type;
+
+template <typename Result>
+using extract_err_t = typename Result::error_type;
+
 }  // namespace detail
 
 // Forward declare Ok
@@ -145,10 +152,14 @@ public:
 
     // Helpful link about auto vs decltype(auto)
     // https://stackoverflow.com/questions/21369113/what-is-the-difference-between-auto-and-decltypeauto-when-returning-from-a-fun
+
+    // Fix below is wrong  Result<traits::invoke_result_t<F&&, R&&>, E> the function reutnrs a result not ok
+    // so you need to determine the result type  nad error type
     template <typename F>
-    [[nodiscard]] constexpr auto and_then(F&& func) & -> Result<traits::invoke_result_t<F&&, R&&>, E> {
+    [[nodiscard]] constexpr auto and_then(F&& func)
+        -> Result<detail::extract_ok_t<traits::invoke_result_t<F&&, R&&>>, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
-        using ok_t = traits::invoke_result_t<F&&, R&&>;
+        using ok_t = detail::extract_ok_t<traits::invoke_result_t<F&&, R&&>>;
 
         if (is_ok()) {
             return Result<ok_t, E>{func(ok_.val)};
@@ -156,21 +167,6 @@ public:
             return err_;
         }
     }
-
-    template <typename F>
-    [[nodiscard]] constexpr auto and_then(F&& func) && -> Result<traits::invoke_result_t<F&&, R&&>, E> {
-        static_assert(traits::is_invocable_v<F&&, R&&>);
-        using ok_t = traits::invoke_result_t<F&&, R&&>;
-
-        if (is_ok()) {
-            return Result<ok_t, E>{func(std::move(ok_.val))};
-        } else {
-            return std::move(err_);
-        }
-    }
-
-    //[[nodiscard]] constexpr const E& then() const& noexcept { return error_; }
-    //[[nodiscard]] constexpr const E&& then() const&& noexcept { return error_; }
 
 private:
     detail::ResultTag tag_;
