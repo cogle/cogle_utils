@@ -6,7 +6,6 @@ namespace {
 using namespace cogle::utils::result;
 
 TEST_CASE("Err Struct Primitive Types", "[result][err]") {
-
     // Tests with the primitive types
     SECTION("Err Struct char") {
         constexpr char err_char_val = 'E';
@@ -46,7 +45,6 @@ TEST_CASE("Err Struct Primitive Types", "[result][err]") {
 }
 
 TEST_CASE("Err Struct Primitive Types constexpr", "[result][err]") {
-
     // Tests with the primitive types
     SECTION("Err Struct char") {
         constexpr char err_char_val = 'E';

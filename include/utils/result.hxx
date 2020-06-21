@@ -138,9 +138,24 @@ public:
     [[nodiscard]] explicit constexpr Result(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<Err<E>>())
         : tag_(result_tag::ERR), err_(std::move(err)) {}
 
-    constexpr bool is_ok() { return tag_ == result_tag::OK; }
+    [[nodiscard]] constexpr bool is_ok() { return tag_ == result_tag::OK; }
 
-    constexpr bool is_err() { return tag_ == result_tag::ERR; }
+    [[nodiscard]] constexpr bool is_err() { return tag_ == result_tag::ERR; }
+
+    // Helpful link about auto vs decltype(auto)
+    // https://stackoverflow.com/questions/21369113/what-is-the-difference-between-auto-and-decltypeauto-when-returning-from-a-fun
+    template <typename F>
+    [[nodiscard]] constexpr auto and_then(F&& func) -> Result<traits::invoke_result_t<F&&, R&&>, E> {
+        static_assert(traits::is_invocable_v<F&&, R&&>);
+        if (is_ok()) {
+            return Result<traits::invoke_result_t<F&&, R&&>, E>{func(ok_.val)};
+        } else {
+            return err_;
+        }
+    }
+
+    //[[nodiscard]] constexpr const E& then() const& noexcept { return error_; }
+    //[[nodiscard]] constexpr const E&& then() const&& noexcept { return error_; }
 
 private:
     detail::ResultTag tag_;
