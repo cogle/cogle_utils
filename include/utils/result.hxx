@@ -153,8 +153,6 @@ public:
     // Helpful link about auto vs decltype(auto)
     // https://stackoverflow.com/questions/21369113/what-is-the-difference-between-auto-and-decltypeauto-when-returning-from-a-fun
 
-    // Fix below is wrong  Result<traits::invoke_result_t<F&&, R&&>, E> the function reutnrs a result not ok
-    // so you need to determine the result type  nad error type
     template <typename F>
     [[nodiscard]] constexpr auto and_then(F&& func)
         -> Result<detail::extract_ok_t<traits::invoke_result_t<F&&, R&&>>, E> {
