@@ -9,7 +9,7 @@ namespace utils {
 namespace traits {
 
 template <typename F, typename... Args>
-using invoke_result_t = typename std::invoke_result<F &&, Args &&...>::type;
+using invoke_result_t = typename std::invoke_result<F, Args...>::type;
 
 template <typename F, typename... Args>
 constexpr bool is_invocable_v = std::is_invocable<F &&, Args &&...>::value;

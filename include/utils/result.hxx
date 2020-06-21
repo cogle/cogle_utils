@@ -75,6 +75,9 @@ struct Ok {
 
 private:
     R value_;
+
+    template <typename Rv, typename Ev>
+    friend class Result;
 };
 
 template <typename E>
@@ -124,6 +127,9 @@ struct Err {
 
 private:
     E error_;
+
+    template <typename Rv, typename Ev>
+    friend class Result;
 };
 
 template <typename R, typename E>
@@ -134,17 +140,21 @@ public:
     using result_type = R;
     using error_type = E;
 
-    [[nodiscard]] explicit constexpr Result(const Ok<R>& ok) noexcept(std::is_nothrow_copy_constructible<Ok<R>>())
+    [[nodiscard]] constexpr Result(const Ok<R>& ok) noexcept(std::is_nothrow_copy_constructible<Ok<R>>())
         : tag_(result_tag::OK), ok_(ok) {}
 
-    [[nodiscard]] explicit constexpr Result(const Ok<R>&& ok) noexcept(std::is_nothrow_move_constructible<Ok<R>>())
+    [[nodiscard]] constexpr Result(const Ok<R>&& ok) noexcept(std::is_nothrow_move_constructible<Ok<R>>())
         : tag_(result_tag::OK), ok_(std::move(ok)) {}
 
-    [[nodiscard]] explicit constexpr Result(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible<Err<E>>())
+    [[nodiscard]] constexpr Result(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible<Err<E>>())
         : tag_(result_tag::ERR), err_(err) {}
 
-    [[nodiscard]] explicit constexpr Result(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<Err<E>>())
+    [[nodiscard]] constexpr Result(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<Err<E>>())
         : tag_(result_tag::ERR), err_(std::move(err)) {}
+
+    ~Result() {
+        // TODO
+    }
 
     [[nodiscard]] constexpr bool is_ok() { return tag_ == result_tag::OK; }
 
@@ -153,14 +163,15 @@ public:
     // Helpful link about auto vs decltype(auto)
     // https://stackoverflow.com/questions/21369113/what-is-the-difference-between-auto-and-decltypeauto-when-returning-from-a-fun
 
+    // TODO allow just Ok as return type as well in other set of overloads
     template <typename F>
     [[nodiscard]] constexpr auto and_then(F&& func)
         -> Result<detail::extract_ok_t<traits::invoke_result_t<F&&, R&&>>, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
-        using ok_t = detail::extract_ok_t<traits::invoke_result_t<F&&, R&&>>;
 
         if (is_ok()) {
-            return Result<ok_t, E>{func(ok_.val)};
+            // Ensure if is error then is same
+            return func(ok_.value_);
         } else {
             return err_;
         }
