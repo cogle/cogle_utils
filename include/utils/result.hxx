@@ -1,6 +1,7 @@
 #pragma once
 
 #include <utils/abort.hxx>
+#include <utils/location.hxx>
 #include <utils/traits.hxx>
 
 namespace cogle {
@@ -24,11 +25,13 @@ namespace detail {
 enum class ResultTag { OK = 0, ERR = 1 };
 
 // TODO MOVE __FUNCTION__ and __LINE__ into their own class
-constexpr void assert_ok(const ResultTag tag, const abort::SourceLocation& sl = abort::SourceLocation::current()) {
+constexpr void assert_ok(const ResultTag tag,
+                         const location::SourceLocation& sl = location::SourceLocation::current()) {
     abort::cogle_assert(tag == ResultTag::OK, "Expected OK tag to be valid ", sl);
 }
 
-constexpr void assert_err(const ResultTag tag, const abort::SourceLocation& sl = abort::SourceLocation::current()) {
+constexpr void assert_err(const ResultTag tag,
+                          const location::SourceLocation& sl = location::SourceLocation::current()) {
     abort::cogle_assert(tag == ResultTag::ERR, "Expected ERR tag to be valid ", sl);
 }
 
@@ -65,6 +68,26 @@ public:
     [[nodiscard]] constexpr const E&& get_error() const&& noexcept {
         assert_err(tag_);
         return error_;
+    }
+
+    [[nodiscard]] constexpr R& get_result() & noexcept {
+        assert_ok(tag_);
+        return result_;
+    }
+
+    [[nodiscard]] constexpr R&& get_result() && noexcept {
+        assert_ok(tag_);
+        return std::move(result_);
+    }
+
+    [[nodiscard]] constexpr const R& get_result() const& noexcept {
+        assert_ok(tag_);
+        return result_;
+    }
+
+    [[nodiscard]] constexpr const R&& get_result() const&& noexcept {
+        assert_ok(tag_);
+        return result_;
     }
 
 private:
