@@ -122,10 +122,10 @@ TEST_CASE("Ok Struct Equality and Inequality Primitive Types", "[result][ok]") {
             Err<char> err_char_a{ok_char_val_a};
             Err<char> err_char_z{ok_char_val_z};
 
-            REQUIRE((ok_char_a == err_char_a) == false);
+            REQUIRE_FALSE(ok_char_a == err_char_a);
             REQUIRE((ok_char_a != err_char_a) == true);
 
-            REQUIRE((ok_char_z == err_char_z) == false);
+            REQUIRE_FALSE(ok_char_z == err_char_z);
             REQUIRE((ok_char_z != err_char_z) == true);
         }
     }

@@ -43,6 +43,12 @@ public:
 
     [[nodiscard]] constexpr ResultTag& get_tag() { return tag_; }
 
+    // [[nodiscard]] constexpr E& get_error() & noexcept { return error_; }
+    // [[nodiscard]] constexpr E&& get_error() && noexcept { return std::move(error_); }
+
+    // [[nodiscard]] constexpr const E& get_error() const& noexcept { return error_; }
+    // [[nodiscard]] constexpr const E&& get_error() const&& noexcept { return error_; }
+
 private:
     ResultTag tag_;
 
