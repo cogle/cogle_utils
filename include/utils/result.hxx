@@ -29,20 +29,30 @@ template <typename Result>
 using extract_err_t = typename Result::error_type;
 
 template <typename R, typename E, typename = void>
-class ResultStorage  {
+class ResultStorage {
 public:
-    ResultStorage();
+    explicit constexpr ResultStorage(const Ok<R>& ok) noexcept(std::is_nothrow_copy_constructible<R>())
+        : tag_(ResultTag::OK), result_(ok.get_result()) {}
+    explicit constexpr ResultStorage(const Ok<R>&& ok) noexcept(std::is_nothrow_move_constructible<R>())
+        : tag_(ResultTag::OK), result_(std::move(ok.get_result())) {}
+
+    explicit constexpr ResultStorage(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible<E>())
+        : tag_(ResultTag::ERR), result_(err.get_error()) {}
+    explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<E>())
+        : tag_(ResultTag::ERR), result_(std::move(err.get_error())) {}
+
+    [[nodiscard]] constexpr ResultTag& get_tag() { return tag_; }
 
 private:
     ResultTag tag_;
 
     union {
-        R value_;
+        R result_;
         E error_;
     };
 
-template <typename Rv, typename Ev>
-friend class Result;
+    template <typename Rv, typename Ev>
+    friend class Result;
 };
 
 }  // namespace detail
@@ -153,40 +163,35 @@ private:
 
 template <typename R, typename E>
 class Result {
-    using result_tag = detail::ResultTag;
+    using TagEnum = detail::ResultTag;
+
+    using Storage = detail::ResultStorage<R, E>;
 
 public:
     using result_type = R;
     using error_type = E;
 
-    [[nodiscard]] constexpr Result(const Ok<R>& ok) noexcept(std::is_nothrow_copy_constructible<Ok<R>>())
-        : tag_(result_tag::OK), ok_value_(ok.value_) {}
+    [[nodiscard]] constexpr Result(const Ok<R>& ok) noexcept(std::is_nothrow_copy_constructible<Storage>())
+        : storage_(ok) {}
 
-    [[nodiscard]] constexpr Result(const Ok<R>&& ok) noexcept(std::is_nothrow_move_constructible<Ok<R>>())
-        : tag_(result_tag::OK), ok_value_(std::move(ok.value_)) {}
+    [[nodiscard]] constexpr Result(const Ok<R>&& ok) noexcept(std::is_nothrow_move_constructible<Storage>())
+        : storage_(std::move(ok)) {}
 
-    [[nodiscard]] constexpr Result(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible<Err<E>>())
-        : tag_(result_tag::ERR), err_value_(err.error_) {}
+    [[nodiscard]] constexpr Result(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible<Storage>())
+        : storage_(err) {}
 
-    [[nodiscard]] constexpr Result(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<Err<E>>())
-        : tag_(result_tag::ERR), err_value_(std::move(err.error_)) {}
+    [[nodiscard]] constexpr Result(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<Storage>())
+        : storage_(std::move(err)) {}
 
-    ~Result() {
-        if (is_ok()) {
-            ok_value_.~R();
-        } else {
-            err_value_.~E();
-        }
-    }
+    [[nodiscard]] constexpr bool is_ok() { return storage_.get_tag() == TagEnum::OK; }
 
-    [[nodiscard]] constexpr bool is_ok() { return tag_ == result_tag::OK; }
-
-    [[nodiscard]] constexpr bool is_err() { return tag_ == result_tag::ERR; }
+    [[nodiscard]] constexpr bool is_err() { return storage_.get_tag() == TagEnum::ERR; }
 
     // Helpful link about auto vs decltype(auto)
     // https://stackoverflow.com/questions/21369113/what-is-the-difference-between-auto-and-decltypeauto-when-returning-from-a-fun
 
     // TODO allow just Ok as return type as well in other set of overloads
+    /*
     template <typename F>
     [[nodiscard]] constexpr auto and_then(F&& func)
         -> Result<detail::extract_ok_t<traits::invoke_result_t<F&&, R&&>>, E> {
@@ -199,14 +204,10 @@ public:
             return Err<E>{err_value_};
         }
     }
+    */
 
 private:
-    detail::ResultTag tag_;
-
-    union {
-        R ok_value_;
-        E err_value_;
-    };
+    Storage storage_;
 };
 
 }  // namespace result
