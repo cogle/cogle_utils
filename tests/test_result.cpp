@@ -7,8 +7,6 @@ using namespace cogle::utils::result;
 
 constexpr char func_ok_val = 'z';
 
-Result<char, int> result_ok() { return Ok<char>{func_ok_val}; }
-
 TEST_CASE("Result Copy Construct Ok", "[result]") {
     SECTION("Result<char, int> copy constrcut") {
         constexpr char a = 'a';
@@ -24,8 +22,12 @@ TEST_CASE("Result Copy Construct Ok", "[result]") {
 
         REQUIRE(result.is_ok() == true);
         REQUIRE(result.is_err() == false);
+    } SECTION("Result<char, int> move assignment") {
+        constexpr char a ='a';
+        Result<char, int> result{Ok<char>{a}};
+
+        Result<char, int> result_move = std::move(result);
     }
-    SECTION("Result<char, int> ok func creation") { auto func_ok_result = result_ok(); }
 }
 
 TEST_CASE("Result and_then()", "[result]") {
