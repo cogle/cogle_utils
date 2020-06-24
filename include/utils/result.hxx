@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utils/abort.hxx>
 #include <utils/traits.hxx>
 
 namespace cogle {
@@ -22,11 +23,14 @@ class Result;
 namespace detail {
 enum class ResultTag { OK = 0, ERR = 1 };
 
-template <typename Result>
-using extract_ok_t = typename Result::result_type;
+// TODO MOVE __FUNCTION__ and __LINE__ into their own class
+constexpr void assert_ok(const ResultTag tag) {
+    abort::cogle_assert(tag == ResultTag::OK, "Expected OK tag ", __FUNCTION__, __LINE__);
+}
 
-template <typename Result>
-using extract_err_t = typename Result::error_type;
+constexpr void assert_err(const ResultTag tag) {
+    abort::cogle_assert(tag == ResultTag::ERR, "Expected ERR tag ", __FUNCTION__, __LINE__);
+}
 
 template <typename R, typename E, typename = void>
 class ResultStorage {
@@ -43,11 +47,25 @@ public:
 
     [[nodiscard]] constexpr ResultTag& get_tag() { return tag_; }
 
-    // [[nodiscard]] constexpr E& get_error() & noexcept { return error_; }
-    // [[nodiscard]] constexpr E&& get_error() && noexcept { return std::move(error_); }
+    [[nodiscard]] constexpr E& get_error() & noexcept {
+        assert_err(tag_);
+        return error_;
+    }
 
-    // [[nodiscard]] constexpr const E& get_error() const& noexcept { return error_; }
-    // [[nodiscard]] constexpr const E&& get_error() const&& noexcept { return error_; }
+    [[nodiscard]] constexpr E&& get_error() && noexcept {
+        assert_err(tag_);
+        return std::move(error_);
+    }
+
+    [[nodiscard]] constexpr const E& get_error() const& noexcept {
+        assert_err(tag_);
+        return error_;
+    }
+
+    [[nodiscard]] constexpr const E&& get_error() const&& noexcept {
+        assert_err(tag_);
+        return error_;
+    }
 
 private:
     ResultTag tag_;
@@ -198,6 +216,13 @@ public:
 
     // TODO allow just Ok as return type as well in other set of overloads
     /*
+    template <typename Result>
+    using extract_ok_t = typename Result::result_type;
+
+    template <typename Result>
+    using extract_err_t = typename Result::error_type;
+
+
     template <typename F>
     [[nodiscard]] constexpr auto and_then(F&& func)
         -> Result<detail::extract_ok_t<traits::invoke_result_t<F&&, R&&>>, E> {

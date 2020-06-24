@@ -1,23 +1,25 @@
 #pragma once
 
 #include <exception>
-
+#include <iostream>
 
 namespace cogle {
 namespace utils {
 namespace abort {
 
-constexpr void abort() {
+template <typename... Args>
+[[noreturn]] void abort(Args&&... args) {
+    ((std::cout << args << " "), ...) << std::endl << std::flush;
     std::terminate();
 }
 
-constexpr void assert(bool expect) {
+template <typename... Args>
+constexpr void cogle_assert(bool expect, Args&&... args) {
     if (!__builtin_expect(expect, 0)) {
-        abort();
+        abort(std::forward<Args>(args)...);
     }
 }
 
-
-}  // namespace abort 
+}  // namespace abort
 }  // namespace utils
 }  // namespace cogle
