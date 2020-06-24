@@ -95,4 +95,37 @@ TEST_CASE("Err Struct Primitive Types constexpr", "[result][err]") {
     }
 }
 
+TEST_CASE("Err Struct Equality and Inequality Primitive Types", "[result][err]") {
+    SECTION("Err struct char Equality and Inequality") {
+        constexpr char err_char_val_a = 'a';
+        constexpr char err_char_val_z = 'z';
+
+        SECTION("Sanity Check") { REQUIRE(err_char_val_a != err_char_val_z); }
+
+        Err<char> err_char_a{err_char_val_a};
+        SECTION("Assert Equality of result with value") { REQUIRE(err_char_a.get_error() == err_char_val_a); }
+
+        Err<char> err_char_z{err_char_val_z};
+        SECTION("Assert Equality of result with value") { REQUIRE(err_char_z.get_error() == err_char_val_z); }
+
+        SECTION("Assert inequality of two different valued Err containers") { REQUIRE(err_char_a != err_char_z); }
+
+        Err<char> err_char_a_dup{err_char_val_a};
+        SECTION("Assert Equality of two same valued Ok containers") {
+            REQUIRE(err_char_a_dup.get_error() == err_char_val_a);
+            REQUIRE(err_char_a == err_char_a_dup);
+        }
+
+        SECTION("Assert Err and Okcontainer inequality") {
+            Ok<char> ok_char_a{err_char_val_a};
+            Ok<char> ok_char_z{err_char_val_z};
+
+            REQUIRE((err_char_a == ok_char_a) == false);
+            REQUIRE((err_char_a != ok_char_a) == true);
+
+            REQUIRE((err_char_z == ok_char_z) == false);
+            REQUIRE((err_char_z != ok_char_z) == true);
+        }
+    }
+}
 }  // namespace

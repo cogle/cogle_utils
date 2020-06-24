@@ -8,6 +8,7 @@ set(TEST_SOURCES
     test_result.cpp
     test_ok.cpp
     test_err.cpp
+    test_result_storage.cpp
     main.cpp
 )
 
