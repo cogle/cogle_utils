@@ -52,7 +52,7 @@ private:
     };
 
     template <typename Rv, typename Ev>
-    friend class Result;
+    friend class result::Result;
 };
 
 }  // namespace detail
@@ -183,9 +183,9 @@ public:
     [[nodiscard]] constexpr Result(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<Storage>())
         : storage_(std::move(err)) {}
 
-    [[nodiscard]] constexpr bool is_ok() { return storage_.get_tag() == TagEnum::OK; }
+    [[nodiscard]] constexpr bool is_ok() { return storage_.tag_ == TagEnum::OK; }
 
-    [[nodiscard]] constexpr bool is_err() { return storage_.get_tag() == TagEnum::ERR; }
+    [[nodiscard]] constexpr bool is_err() { return storage_.tag_ == TagEnum::ERR; }
 
     // Helpful link about auto vs decltype(auto)
     // https://stackoverflow.com/questions/21369113/what-is-the-difference-between-auto-and-decltypeauto-when-returning-from-a-fun

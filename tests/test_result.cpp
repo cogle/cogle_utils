@@ -5,8 +5,6 @@ namespace {
 
 using namespace cogle::utils::result;
 
-constexpr char func_ok_val = 'z';
-
 TEST_CASE("Result Copy Construct Ok", "[result]") {
     SECTION("Result<char, int> copy constrcut") {
         constexpr char a = 'a';
