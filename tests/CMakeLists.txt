@@ -9,6 +9,7 @@ set(TEST_SOURCES
     test_ok.cpp
     test_err.cpp
     test_result_storage.cpp
+    test_source_location.cpp
     main.cpp
 )
 
