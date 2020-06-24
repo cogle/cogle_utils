@@ -116,7 +116,7 @@ TEST_CASE("Err Struct Equality and Inequality Primitive Types", "[result][err]")
             REQUIRE(err_char_a == err_char_a_dup);
         }
 
-        SECTION("Assert Err and Okcontainer inequality") {
+        SECTION("Assert Err and Ok container inequality") {
             Ok<char> ok_char_a{err_char_val_a};
             Ok<char> ok_char_z{err_char_val_z};
 

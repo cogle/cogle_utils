@@ -24,12 +24,12 @@ namespace detail {
 enum class ResultTag { OK = 0, ERR = 1 };
 
 // TODO MOVE __FUNCTION__ and __LINE__ into their own class
-constexpr void assert_ok(const ResultTag tag) {
-    abort::cogle_assert(tag == ResultTag::OK, "Expected OK tag ", __FUNCTION__, __LINE__);
+constexpr void assert_ok(const ResultTag tag, const abort::SourceLocation& sl = abort::SourceLocation::current()) {
+    abort::cogle_assert(tag == ResultTag::OK, "Expected OK tag to be valid ", sl);
 }
 
-constexpr void assert_err(const ResultTag tag) {
-    abort::cogle_assert(tag == ResultTag::ERR, "Expected ERR tag ", __FUNCTION__, __LINE__);
+constexpr void assert_err(const ResultTag tag, const abort::SourceLocation& sl = abort::SourceLocation::current()) {
+    abort::cogle_assert(tag == ResultTag::ERR, "Expected ERR tag to be valid ", sl);
 }
 
 template <typename R, typename E, typename = void>
@@ -89,7 +89,7 @@ struct Ok {
     [[nodiscard]] explicit constexpr Ok(R&& val) noexcept(std::is_nothrow_move_constructible<R>())
         : value_(std::move(val)) {}
 
-    constexpr Ok(Ok&&) = default;
+    constexpr Ok(Ok&&)    = default;
     constexpr Ok& operator=(Ok&&) = default;
 
     constexpr Ok(Ok const&) = default;
@@ -142,7 +142,7 @@ struct Err {
     [[nodiscard]] explicit constexpr Err(E&& val) noexcept(std::is_nothrow_move_constructible<E>())
         : error_(std::move(val)) {}
 
-    constexpr Err(Err&&) = default;
+    constexpr Err(Err&&)   = default;
     constexpr Err& operator=(Err&&) = default;
 
     constexpr Err(Err const&) = default;
@@ -193,7 +193,7 @@ class Result {
 
 public:
     using result_type = R;
-    using error_type = E;
+    using error_type  = E;
 
     [[nodiscard]] constexpr Result(const Ok<R>& ok) noexcept(std::is_nothrow_copy_constructible<Storage>())
         : storage_(ok) {}

@@ -8,4 +8,7 @@ TabWidth: '4'
 UseTab: Never
 IndentWidth: '4'
 AccessModifierOffset: '-4'
+AlignConsecutiveMacros: 'true'
+AlignConsecutiveAssignments: 'true'
+
 ...
