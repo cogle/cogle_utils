@@ -48,6 +48,8 @@ public:
     explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<E>())
         : tag_(ResultTag::ERR), result_(std::move(err.get_error())) {}
 
+    ~ResultStorage() = default;
+
     [[nodiscard]] constexpr ResultTag& get_tag() { return tag_; }
 
     [[nodiscard]] constexpr E& get_error() & noexcept {
@@ -104,7 +106,8 @@ private:
 
 // TODO COPY AND PASTE
 template <typename R, typename E>
-class ResultStorage<R, E, std::enable_if_t<!std::is_trivially_destructible_v<R>>> {
+class ResultStorage<R, E,
+                    std::enable_if_t<!std::is_trivially_destructible_v<R> || !std::is_trivially_destructible_v<E>>> {
 public:
     explicit constexpr ResultStorage(const Ok<R>& ok) noexcept(std::is_nothrow_copy_constructible<R>())
         : tag_(ResultTag::OK), result_(ok.get_result()) {}
@@ -115,6 +118,21 @@ public:
         : tag_(ResultTag::ERR), result_(err.get_error()) {}
     explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<E>())
         : tag_(ResultTag::ERR), result_(std::move(err.get_error())) {}
+
+    ~ResultStorage() noexcept {
+        switch (tag_) {
+            case ResultTag::OK:
+                result_.~R();
+                break;
+            case ResultTag::ERR:
+                error_.~E();
+                break;
+            default:
+                break;
+        }
+    }
+
+    // TODO MOVE and COPY ASSIGNMENT
 
     [[nodiscard]] constexpr ResultTag& get_tag() { return tag_; }
 
