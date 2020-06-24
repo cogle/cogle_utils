@@ -29,9 +29,9 @@ TEST_CASE("SourceLocation Tests [SourceLocation]") {
     }
 
     SECTION("SourceLocation current() creation") {
-        auto file = __builtin_FILE();
-        auto func = __builtin_FUNCTION();
-        auto line = __builtin_LINE() + 1;
+        auto file    = __builtin_FILE();
+        auto func    = __builtin_FUNCTION();
+        auto line    = __builtin_LINE() + 1;  // If you move this line you better move ::current()
         auto current = SourceLocation::current();
 
         REQUIRE(current.line() == line);

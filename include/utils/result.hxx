@@ -35,8 +35,76 @@ constexpr void assert_err(const ResultTag tag,
     abort::cogle_assert(tag == ResultTag::ERR, "Expected ERR tag to be valid ", sl);
 }
 
-template <typename R, typename E, typename = void>
+template <typename R, typename E, typename Enabled = void>
 class ResultStorage {
+public:
+    explicit constexpr ResultStorage(const Ok<R>& ok) noexcept(std::is_nothrow_copy_constructible<R>())
+        : tag_(ResultTag::OK), result_(ok.get_result()) {}
+    explicit constexpr ResultStorage(const Ok<R>&& ok) noexcept(std::is_nothrow_move_constructible<R>())
+        : tag_(ResultTag::OK), result_(std::move(ok.get_result())) {}
+
+    explicit constexpr ResultStorage(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible<E>())
+        : tag_(ResultTag::ERR), result_(err.get_error()) {}
+    explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<E>())
+        : tag_(ResultTag::ERR), result_(std::move(err.get_error())) {}
+
+    [[nodiscard]] constexpr ResultTag& get_tag() { return tag_; }
+
+    [[nodiscard]] constexpr E& get_error() & noexcept {
+        assert_err(tag_);
+        return error_;
+    }
+
+    [[nodiscard]] constexpr E&& get_error() && noexcept {
+        assert_err(tag_);
+        return std::move(error_);
+    }
+
+    [[nodiscard]] constexpr const E& get_error() const& noexcept {
+        assert_err(tag_);
+        return error_;
+    }
+
+    [[nodiscard]] constexpr const E&& get_error() const&& noexcept {
+        assert_err(tag_);
+        return error_;
+    }
+
+    [[nodiscard]] constexpr R& get_result() & noexcept {
+        assert_ok(tag_);
+        return result_;
+    }
+
+    [[nodiscard]] constexpr R&& get_result() && noexcept {
+        assert_ok(tag_);
+        return std::move(result_);
+    }
+
+    [[nodiscard]] constexpr const R& get_result() const& noexcept {
+        assert_ok(tag_);
+        return result_;
+    }
+
+    [[nodiscard]] constexpr const R&& get_result() const&& noexcept {
+        assert_ok(tag_);
+        return result_;
+    }
+
+private:
+    ResultTag tag_;
+
+    union {
+        R result_;
+        E error_;
+    };
+
+    template <typename Rv, typename Ev>
+    friend class result::Result;
+};
+
+// TODO COPY AND PASTE
+template <typename R, typename E>
+class ResultStorage<R, E, std::enable_if_t<!std::is_trivially_destructible_v<R>>> {
 public:
     explicit constexpr ResultStorage(const Ok<R>& ok) noexcept(std::is_nothrow_copy_constructible<R>())
         : tag_(ResultTag::OK), result_(ok.get_result()) {}
@@ -211,7 +279,6 @@ private:
 template <typename R, typename E>
 class Result {
     using TagEnum = detail::ResultTag;
-
     using Storage = detail::ResultStorage<R, E>;
 
 public:
