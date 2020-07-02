@@ -69,7 +69,7 @@ public:
 
     [[nodiscard]] constexpr const E&& get_error() const&& noexcept {
         assert_err(tag_);
-        return error_;
+        return std::move(error_);
     }
 
     [[nodiscard]] constexpr R& get_result() & noexcept {
@@ -89,7 +89,7 @@ public:
 
     [[nodiscard]] constexpr const R&& get_result() const&& noexcept {
         assert_ok(tag_);
-        return result_;
+        return std::move(result_);
     }
 
 private:
@@ -153,7 +153,7 @@ public:
 
     [[nodiscard]] constexpr const E&& get_error() const&& noexcept {
         assert_err(tag_);
-        return error_;
+        return std::move(error_);
     }
 
     [[nodiscard]] constexpr R& get_result() & noexcept {
@@ -173,7 +173,7 @@ public:
 
     [[nodiscard]] constexpr const R&& get_result() const&& noexcept {
         assert_ok(tag_);
-        return result_;
+        return std::move(result_);
     }
 
 private:
@@ -209,7 +209,7 @@ struct Ok {
     [[nodiscard]] constexpr R&& get_result() && noexcept { return std::move(value_); }
 
     [[nodiscard]] constexpr const R& get_result() const& noexcept { return value_; }
-    [[nodiscard]] constexpr const R&& get_result() const&& noexcept { return value_; }
+    [[nodiscard]] constexpr const R&& get_result() const&& noexcept { return std::move(value_); }
 
     template <typename T>
     [[nodiscard]] constexpr bool operator==(const Ok<T>& o) const {
@@ -261,7 +261,7 @@ struct Err {
     [[nodiscard]] constexpr E&& get_error() && noexcept { return std::move(error_); }
 
     [[nodiscard]] constexpr const E& get_error() const& noexcept { return error_; }
-    [[nodiscard]] constexpr const E&& get_error() const&& noexcept { return error_; }
+    [[nodiscard]] constexpr const E&& get_error() const&& noexcept { return std::move(error_); }
 
     template <typename T>
     [[nodiscard]] constexpr bool operator==(const Err<T>& o) const {
@@ -321,29 +321,57 @@ public:
 
     // Helpful link about auto vs decltype(auto)
     // https://stackoverflow.com/questions/21369113/what-is-the-difference-between-auto-and-decltypeauto-when-returning-from-a-fun
-
-    // TODO allow just Ok as return type as well in other set of overloads
-    /*
-    template <typename Result>
-    using extract_ok_t = typename Result::result_type;
-
-    template <typename Result>
-    using extract_err_t = typename Result::error_type;
-
-
     template <typename F>
-    [[nodiscard]] constexpr auto and_then(F&& func)
-        -> Result<detail::extract_ok_t<traits::invoke_result_t<F&&, R&&>>, E> {
+    [[nodiscard]] constexpr auto and_then(F&& func) &
+        -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
+        static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, R&&>::error_type, E>);
 
         if (is_ok()) {
-            // Ensure if is error then is same
-            return func(ok_value_);
+            return func(storage_.get_result());
         } else {
-            return Err<E>{err_value_};
+            return Err<E>{storage_.get_error()};
         }
     }
-    */
+
+    template <typename F>
+    [[nodiscard]] constexpr auto and_then(F&& func) &&
+        -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
+        static_assert(traits::is_invocable_v<F&&, R&&>);
+        static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, R&&>::error_type, E>);
+
+        if (is_ok()) {
+            return func(std::move(storage_.get_result()));
+        } else {
+            return Err<E>{std::move(storage_.get_error())};
+        }
+    }
+
+    template <typename F>
+    [[nodiscard]] constexpr auto and_then(F&& func) const &
+        -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
+        static_assert(traits::is_invocable_v<F&&, R&&>);
+        static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, R&&>::error_type, E>);
+
+        if (is_ok()) {
+            return func(storage_.get_result());
+        } else {
+            return Err<E>{storage_.get_error()};
+        }
+    }
+
+    template <typename F>
+    [[nodiscard]] constexpr auto and_then(F&& func) const &&
+        -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
+        static_assert(traits::is_invocable_v<F&&, R&&>);
+        static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, R&&>::error_type, E>);
+
+        if (is_ok()) {
+            return func(std::move(storage_.get_result()));
+        } else {
+            return Err<E>{std::move(storage_.get_error())};
+        }
+    }
 
 private:
     Storage storage_;

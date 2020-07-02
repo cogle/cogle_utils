@@ -51,7 +51,7 @@ TEST_CASE("ResultStorage Trivial Destruction [result][ResultStorage]") {
 
 TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage]") {
     SECTION("ResultStorage<NotSoTrivial, int> Ok<NotSoTrivial> copy creation") {
-        auto int_ptr       = std::make_shared<int>(100);
+        auto int_ptr             = std::make_shared<int>(100);
         const std::string phrase = "This is a test of template deduction";
 
         NotSoTrivial not_trivial{phrase, int_ptr};
@@ -68,7 +68,7 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage]") {
         REQUIRE(*not_trivial_storage.not_trivial == *not_trivial.not_trivial);
     }
     SECTION("ResultStorage<NotSoTrivial, int> Ok<NotSoTrivial> move creation") {
-        auto int_ptr       = std::make_shared<int>(100);
+        auto int_ptr             = std::make_shared<int>(100);
         const std::string phrase = "This is a test of template deduction";
 
         NotSoTrivial not_trivial{phrase, int_ptr};
@@ -84,7 +84,7 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage]") {
         REQUIRE(*not_trivial_storage.not_trivial == *int_ptr);
     }
     SECTION("ResultStorage<int, NotSoTrivial> Err<NotSoTrivial> copy creation") {
-        auto int_ptr       = std::make_shared<int>(100);
+        auto int_ptr             = std::make_shared<int>(100);
         const std::string phrase = "This is a test of template deduction";
 
         NotSoTrivial not_trivial{phrase, int_ptr};
@@ -101,7 +101,7 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage]") {
         REQUIRE(*not_trivial_storage.not_trivial == *not_trivial.not_trivial);
     }
     SECTION("ResultStorage<int, NotSoTrivial> Err<NotSoTrivial> move creation") {
-        auto int_ptr       = std::make_shared<int>(100);
+        auto int_ptr             = std::make_shared<int>(100);
         const std::string phrase = "This is a test of template deduction";
 
         NotSoTrivial not_trivial{phrase, int_ptr};

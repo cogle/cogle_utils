@@ -39,7 +39,6 @@ TEST_CASE("Result and_then()", "[result]") {
 
         REQUIRE(result.is_ok() == true);
 
-        /*
         SECTION("Result<char, int> and_then() -> Result<std::string, int> valid") {
             // TODO extract this lambda out more and apply it here to assert
             auto string_result =
@@ -47,7 +46,6 @@ TEST_CASE("Result and_then()", "[result]") {
 
             REQUIRE(string_result.is_ok() == true);
         }
-        */
     }
 }
 
