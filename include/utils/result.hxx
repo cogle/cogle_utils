@@ -44,9 +44,9 @@ public:
         : tag_(ResultTag::OK), result_(std::move(ok.get_result())) {}
 
     explicit constexpr ResultStorage(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible<E>())
-        : tag_(ResultTag::ERR), result_(err.get_error()) {}
+        : tag_(ResultTag::ERR), error_(err.get_error()) {}
     explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<E>())
-        : tag_(ResultTag::ERR), result_(std::move(err.get_error())) {}
+        : tag_(ResultTag::ERR), error_(std::move(err.get_error())) {}
 
     ~ResultStorage() = default;
 
@@ -115,9 +115,9 @@ public:
         : tag_(ResultTag::OK), result_(std::move(ok.get_result())) {}
 
     explicit constexpr ResultStorage(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible<E>())
-        : tag_(ResultTag::ERR), result_(err.get_error()) {}
+        : tag_(ResultTag::ERR), error_(err.get_error()) {}
     explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<E>())
-        : tag_(ResultTag::ERR), result_(std::move(err.get_error())) {}
+        : tag_(ResultTag::ERR), error_(std::move(err.get_error())) {}
 
     ~ResultStorage() noexcept {
         switch (tag_) {
