@@ -102,29 +102,32 @@ TEST_CASE("Ok Struct Equality and Inequality Primitive Types", "[result][ok]") {
         constexpr char ok_char_val_a = 'a';
         constexpr char ok_char_val_z = 'z';
 
-        REQUIRE(ok_char_val_a != ok_char_val_z);
+        SECTION("Sanity Check") { REQUIRE(ok_char_val_a != ok_char_val_z); }
 
         Ok<char> ok_char_a{ok_char_val_a};
-        REQUIRE(ok_char_a.get_result() == ok_char_val_a);
+        SECTION("Assert Equality of result with value") { REQUIRE(ok_char_a.get_result() == ok_char_val_a); }
 
         Ok<char> ok_char_z{ok_char_val_z};
-        REQUIRE(ok_char_z.get_result() == ok_char_val_z);
+        SECTION("Assert Equality of result with value") { REQUIRE(ok_char_z.get_result() == ok_char_val_z); }
 
-        REQUIRE(ok_char_a != ok_char_z);
+        SECTION("Assert inequality of two different valued Ok containers") { REQUIRE(ok_char_a != ok_char_z); }
 
         Ok<char> ok_char_a_dup{ok_char_val_a};
-        REQUIRE(ok_char_a_dup.get_result() == ok_char_val_a);
+        SECTION("Assert Equality of two same valued Ok containers") {
+            REQUIRE(ok_char_a_dup.get_result() == ok_char_val_a);
+            REQUIRE(ok_char_a == ok_char_a_dup);
+        }
 
-        REQUIRE(ok_char_a == ok_char_a_dup);
+        SECTION("Assert Ok and Err container inequality") {
+            Err<char> err_char_a{ok_char_val_a};
+            Err<char> err_char_z{ok_char_val_z};
 
-        Err<char> err_char_a{ok_char_val_a};
-        Err<char> err_char_z{ok_char_val_z};
+            REQUIRE_FALSE(ok_char_a == err_char_a);
+            REQUIRE((ok_char_a != err_char_a));
 
-        REQUIRE((ok_char_a == err_char_a) == false);
-        REQUIRE((ok_char_a != err_char_a) == true);
-
-        REQUIRE((ok_char_z == err_char_z) == false);
-        REQUIRE((ok_char_z != err_char_z) == true);
+            REQUIRE_FALSE(ok_char_z == err_char_z);
+            REQUIRE((ok_char_z != err_char_z));
+        }
     }
 }
 
