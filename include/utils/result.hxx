@@ -315,9 +315,33 @@ public:
     [[nodiscard]] constexpr Result(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<Storage>())
         : storage_(std::move(err)) {}
 
+    ~Result() = default;
+
+    constexpr Result(Result&&) = default;
+    constexpr Result& operator=(Result&&) = default;
+
+    constexpr Result(Result const&) = default;
+    constexpr Result& operator=(Result const&) = default;
+
     [[nodiscard]] constexpr bool is_ok() { return storage_.tag_ == TagEnum::OK; }
 
     [[nodiscard]] constexpr bool is_err() { return storage_.tag_ == TagEnum::ERR; }
+
+    [[nodiscard]] constexpr E& error() & noexcept { return storage_.get_error(); }
+
+    [[nodiscard]] constexpr E&& error() && noexcept { return std::move(storage_.get_error()); }
+
+    [[nodiscard]] constexpr const E& error() const& noexcept { return storage_.get_error(); }
+
+    [[nodiscard]] constexpr const E&& error() const&& noexcept { return std::move(storage_.get_error()); }
+
+    [[nodiscard]] constexpr R& result() & noexcept { return storage_.get_result(); }
+
+    [[nodiscard]] constexpr R&& result() && noexcept { return std::move(storage_.get_result()); }
+
+    [[nodiscard]] constexpr const R& result() const& noexcept { return storage_.get_result(); }
+
+    [[nodiscard]] constexpr const R&& result() const&& noexcept { return std::move(storage_.get_result()); }
 
     // Helpful link about auto vs decltype(auto)
     // https://stackoverflow.com/questions/21369113/what-is-the-difference-between-auto-and-decltypeauto-when-returning-from-a-fun
