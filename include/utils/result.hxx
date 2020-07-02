@@ -322,8 +322,8 @@ public:
     // Helpful link about auto vs decltype(auto)
     // https://stackoverflow.com/questions/21369113/what-is-the-difference-between-auto-and-decltypeauto-when-returning-from-a-fun
     template <typename F>
-    [[nodiscard]] constexpr auto and_then(F&& func) &
-        -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
+    [[nodiscard]] constexpr auto and_then(
+        F&& func) & -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
         static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, R&&>::error_type, E>);
 
@@ -335,8 +335,8 @@ public:
     }
 
     template <typename F>
-    [[nodiscard]] constexpr auto and_then(F&& func) &&
-        -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
+    [[nodiscard]] constexpr auto and_then(
+        F&& func) && -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
         static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, R&&>::error_type, E>);
 
@@ -348,8 +348,8 @@ public:
     }
 
     template <typename F>
-    [[nodiscard]] constexpr auto and_then(F&& func) const &
-        -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
+    [[nodiscard]] constexpr auto and_then(
+        F&& func) const& -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
         static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, R&&>::error_type, E>);
 
@@ -361,8 +361,8 @@ public:
     }
 
     template <typename F>
-    [[nodiscard]] constexpr auto and_then(F&& func) const &&
-        -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
+    [[nodiscard]] constexpr auto and_then(
+        F&& func) const&& -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
         static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, R&&>::error_type, E>);
 
