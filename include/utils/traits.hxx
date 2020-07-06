@@ -27,7 +27,6 @@ struct is_comparable_with<
         std::declval<std::remove_const_t<U> const &>() != std::declval<std::remove_const_t<T> const &>())>>
     : std::true_type {};
 
-// todo make generic by using tuple and ... Args
 template <typename>
 struct FirstArgStruct;
 
