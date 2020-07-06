@@ -104,49 +104,12 @@ TEST_CASE("Result map()", "[result]") {
 
         SECTION("Result<char, int> and_then() -> Result<std::string, int> valid") {
             std::string test_str = "Testing";
-            auto string_result =
-                result.map([=](const char) { return test_str; });
+            auto string_result   = result.map([=](const char) { return test_str; });
 
             REQUIRE(string_result.is_ok());
             REQUIRE(string_result.result() == test_str);
         }
     }
-    /*
-    SECTION("Result<Ok<char>> -> and_then()[Ok<string>] -> and_then()[Ok<int>]") {
-        constexpr char a               = 'a';
-        constexpr auto expected_string = "test";
-        constexpr auto final_ret       = 1;
-
-        constexpr auto INVALID = -1;
-
-        auto ret = Result<char, int>(Ok<char>{a})
-                       .and_then([=](const char c) {
-                           using result_t = std::string;
-                           using error_t  = int;
-                           using ret_t    = Result<result_t, error_t>;
-
-                           if (c == a) {
-                               return ret_t{Ok<result_t>{expected_string}};
-                           } else {
-                               return ret_t{Err<error_t>{INVALID}};
-                           }
-                       })
-                       .and_then([=](const std::string str) {
-                           using result_t = int;
-                           using error_t  = int;
-                           using ret_t    = Result<result_t, error_t>;
-
-                           if (str == expected_string) {
-                               return ret_t{Ok<result_t>{final_ret}};
-                           } else {
-                               return ret_t{Err<error_t>{INVALID}};
-                           }
-                       });
-
-        REQUIRE(ret.is_ok());
-        REQUIRE_FALSE(ret.is_err());
-    }
-    */
 }
 
 }  // namespace

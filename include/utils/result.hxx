@@ -391,7 +391,7 @@ public:
     template <typename F>
     [[nodiscard]] constexpr auto map(F&& func) & -> Result<traits::invoke_result_t<F&&, R&&>, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
-        // TODO add to traits to check the function parameter to ensure it is convertible or the same 
+        static_assert(std::is_same_v<traits::first_argument_t<F>, R>);
 
         return map_(storage_, func);
     }
@@ -399,6 +399,7 @@ public:
     template <typename F>
     [[nodiscard]] constexpr auto map(F&& func) && -> Result<traits::invoke_result_t<F&&, R&&>, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
+        static_assert(std::is_same_v<traits::first_argument_t<F>, R>);
 
         return map_(std::move(storage_), func);
     }
@@ -406,6 +407,7 @@ public:
     template <typename F>
     [[nodiscard]] constexpr auto map(F&& func) const& -> Result<traits::invoke_result_t<F&&, R&&>, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
+        static_assert(std::is_same_v<traits::first_argument_t<F>, R>);
 
         return map_(storage_, func);
     }
@@ -413,6 +415,7 @@ public:
     template <typename F>
     [[nodiscard]] constexpr auto map(F&& func) const&& -> Result<traits::invoke_result_t<F&&, R&&>, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
+        static_assert(std::is_same_v<traits::first_argument_t<F>, R>);
 
         return map_(std::move(storage_), func);
     }
@@ -429,7 +432,7 @@ private:
     }
 
     template <typename S, typename F>
-    [[nodiscard]] constexpr auto map_(S && s, F&& func) -> Result<traits::invoke_result_t<F&&, R&&>, E> {
+    [[nodiscard]] constexpr auto map_(S&& s, F&& func) -> Result<traits::invoke_result_t<F&&, R&&>, E> {
         if (is_ok()) {
             return Ok<traits::invoke_result_t<F&&, R&&>>{func(std::forward<S>(s).get_result())};
         } else {

@@ -27,6 +27,28 @@ struct is_comparable_with<
         std::declval<std::remove_const_t<U> const &>() != std::declval<std::remove_const_t<T> const &>())>>
     : std::true_type {};
 
+// todo make generic by using tuple and ... Args
+template <typename>
+struct FirstArgStruct;
+
+template <typename Ret, typename... Args>
+struct FirstArgStruct<Ret (*)(Args...)> {
+    using args_tup = std::tuple<Args...>;
+};
+
+template <typename Ret, typename F, typename... Args>
+struct FirstArgStruct<Ret (F::*)(Args...)> {
+    using args_tup = std::tuple<Args...>;
+};
+
+template <typename Ret, typename F, typename... Args>
+struct FirstArgStruct<Ret (F::*)(Args...) const> {
+    using args_tup = std::tuple<Args...>;
+};
+
+template <typename F>
+using first_argument_t = typename std::tuple_element_t<0, typename FirstArgStruct<decltype(&F::operator())>::args_tup>;
+
 }  // namespace traits
 
 }  // namespace utils
