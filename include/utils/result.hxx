@@ -345,6 +345,10 @@ public:
 
     // Helpful link about auto vs decltype(auto)
     // https://stackoverflow.com/questions/21369113/what-is-the-difference-between-auto-and-decltypeauto-when-returning-from-a-fun
+
+    /*
+    TODO: Explain and_then
+    */
     template <typename F>
     [[nodiscard]] constexpr auto and_then(
         F&& func) & -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
@@ -381,12 +385,53 @@ public:
         return and_then_(std::move(storage_), std::forward<F>(func));
     }
 
+    /*
+    TODO: Explain map
+    */
+    template <typename F>
+    [[nodiscard]] constexpr auto map(F&& func) & -> Result<traits::invoke_result_t<F&&, R&&>, E> {
+        static_assert(traits::is_invocable_v<F&&, R&&>);
+        // TODO add to traits to check the function parameter to ensure it is convertible or the same 
+
+        return map_(storage_, func);
+    }
+
+    template <typename F>
+    [[nodiscard]] constexpr auto map(F&& func) && -> Result<traits::invoke_result_t<F&&, R&&>, E> {
+        static_assert(traits::is_invocable_v<F&&, R&&>);
+
+        return map_(std::move(storage_), func);
+    }
+
+    template <typename F>
+    [[nodiscard]] constexpr auto map(F&& func) const& -> Result<traits::invoke_result_t<F&&, R&&>, E> {
+        static_assert(traits::is_invocable_v<F&&, R&&>);
+
+        return map_(storage_, func);
+    }
+
+    template <typename F>
+    [[nodiscard]] constexpr auto map(F&& func) const&& -> Result<traits::invoke_result_t<F&&, R&&>, E> {
+        static_assert(traits::is_invocable_v<F&&, R&&>);
+
+        return map_(std::move(storage_), func);
+    }
+
 private:
     template <typename S, typename F>
-    [[nodiscard]] constexpr auto and_then_(
-        S&& s, F&& func) -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
+    [[nodiscard]] constexpr auto and_then_(S&& s, F&& func)
+        -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
         if (is_ok()) {
             return func(std::forward<S>(s).get_result());
+        } else {
+            return Err<E>{std::forward<S>(s).get_error()};
+        }
+    }
+
+    template <typename S, typename F>
+    [[nodiscard]] constexpr auto map_(S && s, F&& func) -> Result<traits::invoke_result_t<F&&, R&&>, E> {
+        if (is_ok()) {
+            return Ok<traits::invoke_result_t<F&&, R&&>>{func(std::forward<S>(s).get_result())};
         } else {
             return Err<E>{std::forward<S>(s).get_error()};
         }
