@@ -42,7 +42,7 @@ TEST_CASE("Result Copy Construct Ok", "[result]") {
 }
 
 TEST_CASE("Result and_then()", "[result]") {
-    SECTION("Result<Ok> -> and_then(Ok<string>)") {
+    SECTION("Result<Ok<char>> -> and_then(Ok<string>)") {
         constexpr char a = 'a';
         Ok<char> ok_char{a};
         Result<char, int> result{ok_char};
@@ -58,7 +58,7 @@ TEST_CASE("Result and_then()", "[result]") {
             REQUIRE(string_result.result() == test_str);
         }
     }
-    SECTION("Result<Ok> -> and_then()[Ok<string> ] -> and_then()[int]") {
+    SECTION("Result<Ok<char>> -> and_then()[Ok<string>] -> and_then()[Ok<int>]") {
         constexpr char a               = 'a';
         constexpr auto expected_string = "test";
         constexpr auto final_ret       = 1;
@@ -91,6 +91,24 @@ TEST_CASE("Result and_then()", "[result]") {
 
         REQUIRE(ret.is_ok());
         REQUIRE_FALSE(ret.is_err());
+    }
+}
+
+TEST_CASE("Result map()", "[result]") {
+    SECTION("Result<Ok<char>> -> map(Ok<string>)") {
+        constexpr char a = 'a';
+        Ok<char> ok_char{a};
+        Result<char, int> result{ok_char};
+
+        REQUIRE(result.is_ok());
+
+        SECTION("Result<char, int> and_then() -> Result<std::string, int> valid") {
+            std::string test_str = "Testing";
+            auto string_result   = result.map([=](const char) { return test_str; });
+
+            REQUIRE(string_result.is_ok());
+            REQUIRE(string_result.result() == test_str);
+        }
     }
 }
 

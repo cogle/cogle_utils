@@ -345,17 +345,17 @@ public:
 
     // Helpful link about auto vs decltype(auto)
     // https://stackoverflow.com/questions/21369113/what-is-the-difference-between-auto-and-decltypeauto-when-returning-from-a-fun
+
+    /*
+    TODO: Explain and_then
+    */
     template <typename F>
     [[nodiscard]] constexpr auto and_then(
         F&& func) & -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
         static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, R&&>::error_type, E>);
 
-        if (is_ok()) {
-            return func(storage_.get_result());
-        } else {
-            return Err<E>{storage_.get_error()};
-        }
+        return and_then_(storage_, std::forward<F>(func));
     }
 
     template <typename F>
@@ -364,11 +364,7 @@ public:
         static_assert(traits::is_invocable_v<F&&, R&&>);
         static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, R&&>::error_type, E>);
 
-        if (is_ok()) {
-            return func(std::move(storage_.get_result()));
-        } else {
-            return Err<E>{std::move(storage_.get_error())};
-        }
+        return and_then_(std::move(storage_), std::forward<F>(func));
     }
 
     template <typename F>
@@ -377,11 +373,7 @@ public:
         static_assert(traits::is_invocable_v<F&&, R&&>);
         static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, R&&>::error_type, E>);
 
-        if (is_ok()) {
-            return func(storage_.get_result());
-        } else {
-            return Err<E>{storage_.get_error()};
-        }
+        return and_then_(storage_, std::forward<F>(func));
     }
 
     template <typename F>
@@ -390,14 +382,64 @@ public:
         static_assert(traits::is_invocable_v<F&&, R&&>);
         static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, R&&>::error_type, E>);
 
-        if (is_ok()) {
-            return func(std::move(storage_.get_result()));
-        } else {
-            return Err<E>{std::move(storage_.get_error())};
-        }
+        return and_then_(std::move(storage_), std::forward<F>(func));
+    }
+
+    /*
+    TODO: Explain map
+    */
+    template <typename F>
+    [[nodiscard]] constexpr auto map(F&& func) & -> Result<traits::invoke_result_t<F&&, R&&>, E> {
+        static_assert(traits::is_invocable_v<F&&, R&&>);
+        static_assert(std::is_same_v<traits::first_argument_t<F>, R>);
+
+        return map_(storage_, func);
+    }
+
+    template <typename F>
+    [[nodiscard]] constexpr auto map(F&& func) && -> Result<traits::invoke_result_t<F&&, R&&>, E> {
+        static_assert(traits::is_invocable_v<F&&, R&&>);
+        static_assert(std::is_same_v<traits::first_argument_t<F>, R>);
+
+        return map_(std::move(storage_), func);
+    }
+
+    template <typename F>
+    [[nodiscard]] constexpr auto map(F&& func) const& -> Result<traits::invoke_result_t<F&&, R&&>, E> {
+        static_assert(traits::is_invocable_v<F&&, R&&>);
+        static_assert(std::is_same_v<traits::first_argument_t<F>, R>);
+
+        return map_(storage_, func);
+    }
+
+    template <typename F>
+    [[nodiscard]] constexpr auto map(F&& func) const&& -> Result<traits::invoke_result_t<F&&, R&&>, E> {
+        static_assert(traits::is_invocable_v<F&&, R&&>);
+        static_assert(std::is_same_v<traits::first_argument_t<F>, R>);
+
+        return map_(std::move(storage_), func);
     }
 
 private:
+    template <typename S, typename F>
+    [[nodiscard]] constexpr auto and_then_(S&& s, F&& func)
+        -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
+        if (is_ok()) {
+            return func(std::forward<S>(s).get_result());
+        } else {
+            return Err<E>{std::forward<S>(s).get_error()};
+        }
+    }
+
+    template <typename S, typename F>
+    [[nodiscard]] constexpr auto map_(S&& s, F&& func) -> Result<traits::invoke_result_t<F&&, R&&>, E> {
+        if (is_ok()) {
+            return Ok<traits::invoke_result_t<F&&, R&&>>{func(std::forward<S>(s).get_result())};
+        } else {
+            return Err<E>{std::forward<S>(s).get_error()};
+        }
+    }
+
     Storage storage_;
 };
 
