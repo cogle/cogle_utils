@@ -106,7 +106,8 @@ private:
 
 template <typename R, typename E>
 class ResultStorage<R, E,
-                    std::enable_if_t<!std::is_trivially_destructible_v<R> || !std::is_trivially_destructible_v<E>>> {
+                    std::enable_if_t<!std::is_void_v<R> &&
+                                     (!std::is_trivially_destructible_v<R> || !std::is_trivially_destructible_v<E>)>> {
 public:
     explicit constexpr ResultStorage(const Ok<R>& ok) noexcept(std::is_nothrow_copy_constructible<R>())
         : tag_(ResultTag::OK), result_(ok.get_result()) {}
@@ -188,7 +189,59 @@ private:
 };
 
 template <typename E>
-class ResultStorage<void, E> {
+class ResultStorage<void, E, std::enable_if_t<std::is_trivially_destructible_v<E>>> {
+    using type = typename std::aligned_storage<sizeof(E), alignof(E)>::type;
+
+public:
+    explicit constexpr ResultStorage(const Ok<void>&) noexcept : tag_(ResultTag::OK) {}
+
+    explicit constexpr ResultStorage(const Ok<void>&&) noexcept : tag_(ResultTag::OK) {}
+
+    explicit constexpr ResultStorage(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible<E>())
+        : tag_(ResultTag::ERR) {
+        new (&error_) E(err.get_error());
+    }
+    explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<E>())
+        : tag_(ResultTag::ERR) {
+        new (&error_) E(std::move(err.get_error()));
+    }
+
+    ~ResultStorage() = default;
+
+    // TODO MOVE and COPY ASSIGNMENT
+
+    [[nodiscard]] constexpr ResultTag& get_tag() { return tag_; }
+
+    [[nodiscard]] constexpr E& get_error() & noexcept {
+        assert_err(tag_);
+        return error_;
+    }
+
+    [[nodiscard]] constexpr E&& get_error() && noexcept {
+        assert_err(tag_);
+        return std::move(error_);
+    }
+
+    [[nodiscard]] constexpr const E& get_error() const& noexcept {
+        assert_err(tag_);
+        return error_;
+    }
+
+    [[nodiscard]] constexpr const E&& get_error() const&& noexcept {
+        assert_err(tag_);
+        return std::move(error_);
+    }
+
+private:
+    ResultTag tag_;
+    type error_;
+
+    template <typename Rv, typename Ev>
+    friend class result::Result;
+};
+
+template <typename E>
+class ResultStorage<void, E, std::enable_if_t<!std::is_trivially_destructible_v<E>>> {
     using type = typename std::aligned_storage<sizeof(E), alignof(E)>::type;
 
 public:
@@ -293,6 +346,34 @@ private:
     friend class Result;
 };
 
+template <>
+struct Ok<void> {
+    using value_type = void;
+
+    [[nodiscard]] explicit constexpr Ok() noexcept {}
+
+    constexpr Ok(Ok&&)    = default;
+    constexpr Ok& operator=(Ok&&) = default;
+
+    constexpr Ok(Ok const&) = default;
+    constexpr Ok& operator=(Ok const&) = default;
+
+    [[nodiscard]] constexpr bool operator==(const Ok<void>&) const { return true; }
+
+    [[nodiscard]] constexpr bool operator!=(const Ok<void>&) const { return false; }
+
+    [[nodiscard]] constexpr bool operator==(const Err<void>&) const { return false; }
+
+    template <typename T>
+    [[nodiscard]] constexpr bool operator!=(const Err<void>&) const {
+        return true;
+    }
+
+private:
+    template <typename Rv, typename Ev>
+    friend class Result;
+};
+
 template <typename E>
 struct Err {
     using value_type = E;
@@ -378,21 +459,45 @@ public:
 
     [[nodiscard]] constexpr bool is_err() { return storage_.tag_ == TagEnum::ERR; }
 
-    [[nodiscard]] constexpr E& error() & noexcept { return storage_.get_error(); }
+    template <typename U = E>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, U&> error() & noexcept {
+        return storage_.get_error();
+    }
 
-    [[nodiscard]] constexpr E&& error() && noexcept { return std::move(storage_.get_error()); }
+    template <typename U = E>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, U&&> error() && noexcept {
+        return std::move(storage_.get_error());
+    }
 
-    [[nodiscard]] constexpr const E& error() const& noexcept { return storage_.get_error(); }
+    template <typename U = E>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, const U&> error() const& noexcept {
+        return storage_.get_error();
+    }
 
-    [[nodiscard]] constexpr const E&& error() const&& noexcept { return std::move(storage_.get_error()); }
+    template <typename U = E>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, const E&&> error() const&& noexcept {
+        return std::move(storage_.get_error());
+    }
 
-    [[nodiscard]] constexpr R& result() & noexcept { return storage_.get_result(); }
+    template <typename U = R>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, U&> result() & noexcept {
+        return storage_.get_result();
+    }
 
-    [[nodiscard]] constexpr R&& result() && noexcept { return std::move(storage_.get_result()); }
+    template <typename U = R>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, U&&> result() && noexcept {
+        return std::move(storage_.get_result());
+    }
 
-    [[nodiscard]] constexpr const R& result() const& noexcept { return storage_.get_result(); }
+    template <typename U = R>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, const U&> result() const& noexcept {
+        return storage_.get_result();
+    }
 
-    [[nodiscard]] constexpr const R&& result() const&& noexcept { return std::move(storage_.get_result()); }
+    template <typename U = R>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, const U&&> result() const&& noexcept {
+        return std::move(storage_.get_result());
+    }
 
     // Helpful link about auto vs decltype(auto)
     // https://stackoverflow.com/questions/21369113/what-is-the-difference-between-auto-and-decltypeauto-when-returning-from-a-fun
@@ -405,7 +510,7 @@ public:
     // auto fin = r.and_then([](){ return Result<std::string, int>{Ok{"a is the first letter in the Latin
     // alphabet"}};});
 
-    template <typename F>
+    template <typename F, typename U = R, typename = std::enable_if_t<!std::is_void_v<U>>>
     [[nodiscard]] constexpr auto and_then(
         F&& func) & -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
@@ -414,7 +519,7 @@ public:
         return and_then_(storage_, std::forward<F>(func));
     }
 
-    template <typename F>
+    template <typename F, typename U = R, typename = std::enable_if_t<!std::is_void_v<U>>>
     [[nodiscard]] constexpr auto and_then(
         F&& func) && -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
@@ -423,7 +528,7 @@ public:
         return and_then_(std::move(storage_), std::forward<F>(func));
     }
 
-    template <typename F>
+    template <typename F, typename U = R, typename = std::enable_if_t<!std::is_void_v<U>>>
     [[nodiscard]] constexpr auto and_then(
         F&& func) const& -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
@@ -432,7 +537,7 @@ public:
         return and_then_(storage_, std::forward<F>(func));
     }
 
-    template <typename F>
+    template <typename F, typename U = R, typename = std::enable_if_t<!std::is_void_v<U>>>
     [[nodiscard]] constexpr auto and_then(
         F&& func) const&& -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
@@ -448,6 +553,7 @@ public:
     // Result<char, int> r{Ok{'a'}};
     // auto fin = r.map([](){ return std::string{"a is the first letter in the Latin alphabet"}; });
 
+    /*
     template <typename F>
     [[nodiscard]] constexpr auto map(F&& func) & -> Result<traits::invoke_result_t<F&&, R&&>, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
@@ -479,9 +585,10 @@ public:
 
         return map_(std::move(storage_), func);
     }
+    */
 
 private:
-    template <typename S, typename F>
+    template <typename S, typename F, typename U = R, typename = std::enable_if_t<!std::is_void_v<U>>>
     [[nodiscard]] constexpr auto and_then_(S&& s, F&& func)
         -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
         if (is_ok()) {
@@ -491,6 +598,7 @@ private:
         }
     }
 
+    /*
     template <typename S, typename F>
     [[nodiscard]] constexpr auto map_(S&& s, F&& func) -> Result<traits::invoke_result_t<F&&, R&&>, E> {
         if (is_ok()) {
@@ -499,6 +607,7 @@ private:
             return Err<E>{std::forward<S>(s).get_error()};
         }
     }
+    */
 
     Storage storage_;
 };

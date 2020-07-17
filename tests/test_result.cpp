@@ -39,6 +39,38 @@ TEST_CASE("Result Copy Construct Ok", "[result]") {
         REQUIRE(result_cpy.is_ok());
         REQUIRE_FALSE(result_cpy.is_err());
     }
+
+    /*
+    SECTION("Result<void, int> copy constrcut") {
+        Ok<void> ok_void{};
+        Result<void, int> result{ok_void};
+
+        REQUIRE(result.is_ok());
+        REQUIRE_FALSE(result.is_err());
+    }
+    SECTION("Result<void, int> move construct") {
+        Result<void, int> result{Ok<void>{}};
+
+        REQUIRE(result.is_ok());
+        REQUIRE_FALSE(result.is_err());
+    }
+    SECTION("Result<void, int> copy assignment") {
+        Result<void, int> ok{Ok<void>{}};
+
+        Result<void, int> result_cpy = ok;
+
+        REQUIRE(result_cpy.is_ok());
+        REQUIRE_FALSE(result_cpy.is_err());
+    }
+    SECTION("Result<void, int> move assignment") {
+        Result<void, int> result{Ok<void>{}};
+
+        Result<void, int> result_cpy = std::move(result);
+
+        REQUIRE(result_cpy.is_ok());
+        REQUIRE_FALSE(result_cpy.is_err());
+    }
+    */
 }
 
 TEST_CASE("Result and_then()", "[result]") {
@@ -94,6 +126,7 @@ TEST_CASE("Result and_then()", "[result]") {
     }
 }
 
+/*
 TEST_CASE("Result map()", "[result]") {
     SECTION("Result<Ok<char>> -> map(Ok<string>)") {
         constexpr char a = 'a';
@@ -112,4 +145,5 @@ TEST_CASE("Result map()", "[result]") {
     }
 }
 
+    */
 }  // namespace

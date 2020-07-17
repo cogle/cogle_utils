@@ -118,4 +118,13 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage]") {
     }
 }
 
+TEST_CASE("ResultStorage Trivial Destruction [result][ResultStorage] void Result specialization") {
+    SECTION("ResultStorage<void, int> Ok<void> copy creation") {
+        Ok<void> ok{};
+        detail::ResultStorage<void, int> storage{ok};
+
+        REQUIRE(storage.get_tag() == detail::ResultTag::OK);
+    }
+}
+
 }  // namespace
