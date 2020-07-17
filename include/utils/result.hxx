@@ -507,9 +507,11 @@ public:
     // and_then: takes a functor that takes the current result and returns a Result<U,E>
     // Examples:
     // Result<char, int> r{Ok{'a'}};
-    // auto fin = r.and_then([](){ return Result<std::string, int>{Ok{"a is the first letter in the Latin
-    // alphabet"}};});
+    // auto fin = r.and_then([](){ 
+    //     return Result<std::string, int>{Ok{"a is the first letter in the Latin alphabet"}};
+    // });
 
+    // TODO: Problem is simple dont use R lol use U
     template <typename F, typename U = R, typename = std::enable_if_t<!std::is_void_v<U>>>
     [[nodiscard]] constexpr auto and_then(
         F&& func) & -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
