@@ -553,8 +553,7 @@ public:
     // Result<char, int> r{Ok{'a'}};
     // auto fin = r.map([](){ return std::string{"a is the first letter in the Latin alphabet"}; });
 
-    /*
-    template <typename F>
+    template <typename F, typename U = R, typename = std::enable_if_t<!std::is_void_v<U>>>
     [[nodiscard]] constexpr auto map(F&& func) & -> Result<traits::invoke_result_t<F&&, R&&>, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
         static_assert(std::is_same_v<traits::first_argument_t<F>, R>);
@@ -562,7 +561,7 @@ public:
         return map_(storage_, func);
     }
 
-    template <typename F>
+    template <typename F, typename U = R, typename = std::enable_if_t<!std::is_void_v<U>>>
     [[nodiscard]] constexpr auto map(F&& func) && -> Result<traits::invoke_result_t<F&&, R&&>, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
         static_assert(std::is_same_v<traits::first_argument_t<F>, R>);
@@ -570,7 +569,7 @@ public:
         return map_(std::move(storage_), func);
     }
 
-    template <typename F>
+    template <typename F, typename U = R, typename = std::enable_if_t<!std::is_void_v<U>>>
     [[nodiscard]] constexpr auto map(F&& func) const& -> Result<traits::invoke_result_t<F&&, R&&>, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
         static_assert(std::is_same_v<traits::first_argument_t<F>, R>);
@@ -578,14 +577,13 @@ public:
         return map_(storage_, func);
     }
 
-    template <typename F>
+    template <typename F, typename U = R, typename = std::enable_if_t<!std::is_void_v<U>>>
     [[nodiscard]] constexpr auto map(F&& func) const&& -> Result<traits::invoke_result_t<F&&, R&&>, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
         static_assert(std::is_same_v<traits::first_argument_t<F>, R>);
 
         return map_(std::move(storage_), func);
     }
-    */
 
 private:
     template <typename S, typename F, typename U = R, typename = std::enable_if_t<!std::is_void_v<U>>>
@@ -598,8 +596,7 @@ private:
         }
     }
 
-    /*
-    template <typename S, typename F>
+    template <typename S, typename F, typename U = R, typename = std::enable_if_t<!std::is_void_v<U>>>
     [[nodiscard]] constexpr auto map_(S&& s, F&& func) -> Result<traits::invoke_result_t<F&&, R&&>, E> {
         if (is_ok()) {
             return Ok<traits::invoke_result_t<F&&, R&&>>{func(std::forward<S>(s).get_result())};
@@ -607,7 +604,6 @@ private:
             return Err<E>{std::forward<S>(s).get_error()};
         }
     }
-    */
 
     Storage storage_;
 };
