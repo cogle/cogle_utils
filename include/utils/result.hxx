@@ -104,7 +104,6 @@ private:
     friend class result::Result;
 };
 
-// TODO COPY AND PASTE
 template <typename R, typename E>
 class ResultStorage<R, E,
                     std::enable_if_t<!std::is_trivially_destructible_v<R> || !std::is_trivially_destructible_v<E>>> {
@@ -119,7 +118,7 @@ public:
     explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<E>())
         : tag_(ResultTag::ERR), error_(std::move(err.get_error())) {}
 
-    ~ResultStorage() noexcept {
+    ~ResultStorage() noexcept(std::declval<R>().~R() && std::declval<E>().~E()) {
         switch (tag_) {
             case ResultTag::OK:
                 result_.~R();
@@ -183,6 +182,58 @@ private:
         R result_;
         E error_;
     };
+
+    template <typename Rv, typename Ev>
+    friend class result::Result;
+};
+
+template <>
+class ResultStorage<void, E> {
+    using type = typename std::aligned_storage<sizeof(E), alignof(E)>::type;
+
+public:
+    explicit constexpr ResultStorage(const Ok<void>&) noexcept : tag_(ResultTag::OK) {}
+
+    explicit constexpr ResultStorage(const Ok<void>&&) noexcept : tag_(ResultTag::OK) {}
+
+    explicit constexpr ResultStorage(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible<E>())
+        : tag_(ResultTag::ERR) {
+        new (&error_) E(err.get_error());
+    }
+    explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<E>())
+        : tag_(ResultTag::ERR) {
+        new (&error_) E(std::move(err.get_error()));
+    }
+
+    ~ResultStorage() = default;
+
+    // TODO MOVE and COPY ASSIGNMENT
+
+    [[nodiscard]] constexpr ResultTag& get_tag() { return tag_; }
+
+    [[nodiscard]] constexpr E& get_error() & noexcept {
+        assert_err(tag_);
+        return error_;
+    }
+
+    [[nodiscard]] constexpr E&& get_error() && noexcept {
+        assert_err(tag_);
+        return std::move(error_);
+    }
+
+    [[nodiscard]] constexpr const E& get_error() const& noexcept {
+        assert_err(tag_);
+        return error_;
+    }
+
+    [[nodiscard]] constexpr const E&& get_error() const&& noexcept {
+        assert_err(tag_);
+        return std::move(error_);
+    }
+
+private:
+    ResultTag tag_;
+    type error_;
 
     template <typename Rv, typename Ev>
     friend class result::Result;
@@ -346,9 +397,14 @@ public:
     // Helpful link about auto vs decltype(auto)
     // https://stackoverflow.com/questions/21369113/what-is-the-difference-between-auto-and-decltypeauto-when-returning-from-a-fun
 
-    /*
-    TODO: Explain and_then
-    */
+    // and_then<R, Func>(Func&& f) -> Result<U, E>
+    // where f(R r) -> Result<U, E>
+    // and_then: takes a functor that takes the current result and returns a Result<U,E>
+    // Examples:
+    // Result<char, int> r{Ok{'a'}};
+    // auto fin = r.and_then([](){ return Result<std::string, int>{Ok{"a is the first letter in the Latin
+    // alphabet"}};});
+
     template <typename F>
     [[nodiscard]] constexpr auto and_then(
         F&& func) & -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
@@ -385,9 +441,13 @@ public:
         return and_then_(std::move(storage_), std::forward<F>(func));
     }
 
-    /*
-    TODO: Explain map
-    */
+    // map<R, Func>(Func&& f) -> Result<U, E>
+    // where f(R r) -> U
+    // map: takes a functor that takes the current result and returns a result of type U
+    // Examples:
+    // Result<char, int> r{Ok{'a'}};
+    // auto fin = r.map([](){ return std::string{"a is the first letter in the Latin alphabet"}; });
+
     template <typename F>
     [[nodiscard]] constexpr auto map(F&& func) & -> Result<traits::invoke_result_t<F&&, R&&>, E> {
         static_assert(traits::is_invocable_v<F&&, R&&>);
