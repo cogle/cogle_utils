@@ -118,7 +118,7 @@ public:
     explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<E>())
         : tag_(ResultTag::ERR), error_(std::move(err.get_error())) {}
 
-    ~ResultStorage() noexcept(std::declval<R>().~R() && std::declval<E>().~E()) {
+    ~ResultStorage() noexcept(noexcept(std::declval<R>().~R()) && noexcept(std::declval<E>().~E())) {
         switch (tag_) {
             case ResultTag::OK:
                 result_.~R();
@@ -187,7 +187,7 @@ private:
     friend class result::Result;
 };
 
-template <>
+template <typename E>
 class ResultStorage<void, E> {
     using type = typename std::aligned_storage<sizeof(E), alignof(E)>::type;
 
