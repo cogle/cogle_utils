@@ -1,9 +1,9 @@
 #pragma once
 
+#include <new>
 #include <utils/abort.hxx>
 #include <utils/location.hxx>
 #include <utils/traits.hxx>
-#include <new>
 
 namespace cogle {
 
@@ -653,7 +653,6 @@ public:
 
         return map_(std::move(storage_), func);
     }
-
 
 private:
     template <typename S, typename F, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>
