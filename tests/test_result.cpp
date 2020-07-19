@@ -47,8 +47,14 @@ TEST_CASE("Result Copy Construct Ok", "[result]") {
         REQUIRE(result.is_ok());
         REQUIRE_FALSE(result.is_err());
 
-        int inc = 0;
-        result.and_then([&inc]() { inc += 1; });
+        //int inc = 0;
+        //auto tst = result.and_then([&inc](){ 
+        //    inc += 1;
+        //    return Result<int, int>{Ok<int>{1}}; 
+        //});
+
+        //REQUIRE(tst.is_ok());
+        //REQUIRE(tst.is_ok());
     }
     /*
     SECTION("Result<void, int> move construct") {
@@ -75,7 +81,7 @@ TEST_CASE("Result Copy Construct Ok", "[result]") {
     }
     */
 }
-/*
+
 TEST_CASE("Result and_then()", "[result]") {
     SECTION("Result<Ok<char>> -> and_then(Ok<string>)") {
         constexpr char a = 'a';
@@ -146,6 +152,5 @@ TEST_CASE("Result map()", "[result]") {
         }
     }
 }
-*/
 
 }  // namespace
