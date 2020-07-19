@@ -1,5 +1,6 @@
 #pragma once
 
+#include <new>
 #include <utils/abort.hxx>
 #include <utils/location.hxx>
 #include <utils/traits.hxx>
@@ -104,10 +105,10 @@ private:
     friend class result::Result;
 };
 
-// TODO COPY AND PASTE
 template <typename R, typename E>
 class ResultStorage<R, E,
-                    std::enable_if_t<!std::is_trivially_destructible_v<R> || !std::is_trivially_destructible_v<E>>> {
+                    std::enable_if_t<!std::is_void_v<R> &&
+                                     (!std::is_trivially_destructible_v<R> || !std::is_trivially_destructible_v<E>)>> {
 public:
     explicit constexpr ResultStorage(const Ok<R>& ok) noexcept(std::is_nothrow_copy_constructible<R>())
         : tag_(ResultTag::OK), result_(ok.get_result()) {}
@@ -119,7 +120,7 @@ public:
     explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<E>())
         : tag_(ResultTag::ERR), error_(std::move(err.get_error())) {}
 
-    ~ResultStorage() noexcept {
+    ~ResultStorage() noexcept(noexcept(std::declval<R>().~R()) && noexcept(std::declval<E>().~E())) {
         switch (tag_) {
             case ResultTag::OK:
                 result_.~R();
@@ -188,6 +189,110 @@ private:
     friend class result::Result;
 };
 
+template <typename E>
+class ResultStorage<void, E, std::enable_if_t<std::is_trivially_destructible_v<E>>> {
+    using type = typename std::aligned_storage<sizeof(E), alignof(E)>::type;
+
+public:
+    explicit constexpr ResultStorage(const Ok<void>&) noexcept : tag_(ResultTag::OK) {}
+
+    explicit constexpr ResultStorage(const Ok<void>&&) noexcept : tag_(ResultTag::OK) {}
+
+    explicit constexpr ResultStorage(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible<E>())
+        : tag_(ResultTag::ERR) {
+        new (&error_) E(err.get_error());
+    }
+    explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<E>())
+        : tag_(ResultTag::ERR) {
+        new (&error_) E(std::move(err.get_error()));
+    }
+
+    ~ResultStorage() = default;
+
+    // TODO MOVE and COPY ASSIGNMENT
+
+    [[nodiscard]] constexpr ResultTag& get_tag() { return tag_; }
+
+    [[nodiscard]] constexpr E& get_error() & noexcept {
+        assert_err(tag_);
+        return *std::launder(reinterpret_cast<E*>(&error_));
+    }
+
+    [[nodiscard]] constexpr E&& get_error() && noexcept {
+        assert_err(tag_);
+        return std::move(*std::launder(reinterpret_cast<E*>(&error_)));
+    }
+
+    [[nodiscard]] constexpr const E& get_error() const& noexcept {
+        assert_err(tag_);
+        return *std::launder(reinterpret_cast<const E*>(&error_));
+    }
+
+    [[nodiscard]] constexpr const E&& get_error() const&& noexcept {
+        assert_err(tag_);
+        return std::move(*std::launder(reinterpret_cast<const E*>(&error_)));
+    }
+
+private:
+    ResultTag tag_;
+    type error_;
+
+    template <typename Rv, typename Ev>
+    friend class result::Result;
+};
+
+template <typename E>
+class ResultStorage<void, E, std::enable_if_t<!std::is_trivially_destructible_v<E>>> {
+    using type = typename std::aligned_storage<sizeof(E), alignof(E)>::type;
+
+public:
+    explicit constexpr ResultStorage(const Ok<void>&) noexcept : tag_(ResultTag::OK) {}
+
+    explicit constexpr ResultStorage(const Ok<void>&&) noexcept : tag_(ResultTag::OK) {}
+
+    explicit constexpr ResultStorage(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible<E>())
+        : tag_(ResultTag::ERR) {
+        new (&error_) E(err.get_error());
+    }
+    explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<E>())
+        : tag_(ResultTag::ERR) {
+        new (&error_) E(std::move(err.get_error()));
+    }
+
+    ~ResultStorage() = default;
+
+    // TODO MOVE and COPY ASSIGNMENT
+
+    [[nodiscard]] constexpr ResultTag& get_tag() { return tag_; }
+
+    [[nodiscard]] constexpr E& get_error() & noexcept {
+        assert_err(tag_);
+        return error_;
+    }
+
+    [[nodiscard]] constexpr E&& get_error() && noexcept {
+        assert_err(tag_);
+        return std::move(error_);
+    }
+
+    [[nodiscard]] constexpr const E& get_error() const& noexcept {
+        assert_err(tag_);
+        return error_;
+    }
+
+    [[nodiscard]] constexpr const E&& get_error() const&& noexcept {
+        assert_err(tag_);
+        return std::move(error_);
+    }
+
+private:
+    ResultTag tag_;
+    type error_;
+
+    template <typename Rv, typename Ev>
+    friend class result::Result;
+};
+
 }  // namespace detail
 
 template <typename R>
@@ -238,6 +343,34 @@ struct Ok {
 private:
     R value_;
 
+    template <typename Rv, typename Ev>
+    friend class Result;
+};
+
+template <>
+struct Ok<void> {
+    using value_type = void;
+
+    [[nodiscard]] explicit constexpr Ok() noexcept {}
+
+    constexpr Ok(Ok&&)    = default;
+    constexpr Ok& operator=(Ok&&) = default;
+
+    constexpr Ok(Ok const&) = default;
+    constexpr Ok& operator=(Ok const&) = default;
+
+    [[nodiscard]] constexpr bool operator==(const Ok<void>&) const { return true; }
+
+    [[nodiscard]] constexpr bool operator!=(const Ok<void>&) const { return false; }
+
+    [[nodiscard]] constexpr bool operator==(const Err<void>&) const { return false; }
+
+    template <typename T>
+    [[nodiscard]] constexpr bool operator!=(const Err<void>&) const {
+        return true;
+    }
+
+private:
     template <typename Rv, typename Ev>
     friend class Result;
 };
@@ -327,103 +460,204 @@ public:
 
     [[nodiscard]] constexpr bool is_err() { return storage_.tag_ == TagEnum::ERR; }
 
-    [[nodiscard]] constexpr E& error() & noexcept { return storage_.get_error(); }
+    template <typename U = E>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, U&> error() & noexcept {
+        return storage_.get_error();
+    }
 
-    [[nodiscard]] constexpr E&& error() && noexcept { return std::move(storage_.get_error()); }
+    template <typename U = E>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, U&&> error() && noexcept {
+        return std::move(storage_.get_error());
+    }
 
-    [[nodiscard]] constexpr const E& error() const& noexcept { return storage_.get_error(); }
+    template <typename U = E>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, const U&> error() const& noexcept {
+        return storage_.get_error();
+    }
 
-    [[nodiscard]] constexpr const E&& error() const&& noexcept { return std::move(storage_.get_error()); }
+    template <typename U = E>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, const E&&> error() const&& noexcept {
+        return std::move(storage_.get_error());
+    }
 
-    [[nodiscard]] constexpr R& result() & noexcept { return storage_.get_result(); }
+    template <typename U = R>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, U&> result() & noexcept {
+        return storage_.get_result();
+    }
 
-    [[nodiscard]] constexpr R&& result() && noexcept { return std::move(storage_.get_result()); }
+    template <typename U = R>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, U&&> result() && noexcept {
+        return std::move(storage_.get_result());
+    }
 
-    [[nodiscard]] constexpr const R& result() const& noexcept { return storage_.get_result(); }
+    template <typename U = R>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, const U&> result() const& noexcept {
+        return storage_.get_result();
+    }
 
-    [[nodiscard]] constexpr const R&& result() const&& noexcept { return std::move(storage_.get_result()); }
+    template <typename U = R>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, const U&&> result() const&& noexcept {
+        return std::move(storage_.get_result());
+    }
 
     // Helpful link about auto vs decltype(auto)
     // https://stackoverflow.com/questions/21369113/what-is-the-difference-between-auto-and-decltypeauto-when-returning-from-a-fun
 
-    /*
-    TODO: Explain and_then
-    */
-    template <typename F>
+    // and_then<R, Func>(Func&& f) -> Result<U, E>
+    // where f(R r) -> Result<U, E>
+    // and_then: takes a functor that takes the current result and returns a Result<U,E>
+    // Examples:
+    // Result<char, int> r{Ok{'a'}};
+    // auto fin = r.and_then([](){
+    //     return Result<std::string, int>{Ok{"a is the first letter in the Latin alphabet"}};
+    // });
+
+    // non-void
+    template <typename F, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>
     [[nodiscard]] constexpr auto and_then(
-        F&& func) & -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
-        static_assert(traits::is_invocable_v<F&&, R&&>);
-        static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, R&&>::error_type, E>);
+        F&& func) & -> Result<typename traits::invoke_result_t<F&&, X&&>::result_type, E> {
+        static_assert(traits::is_invocable_v<F&&, X&&>);
+        static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, X&&>::error_type, E>);
 
         return and_then_(storage_, std::forward<F>(func));
     }
 
-    template <typename F>
+    template <typename F, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>
     [[nodiscard]] constexpr auto and_then(
-        F&& func) && -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
-        static_assert(traits::is_invocable_v<F&&, R&&>);
-        static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, R&&>::error_type, E>);
+        F&& func) && -> Result<typename traits::invoke_result_t<F&&, X&&>::result_type, E> {
+        static_assert(traits::is_invocable_v<F&&, X&&>);
+        static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, X&&>::error_type, E>);
 
         return and_then_(std::move(storage_), std::forward<F>(func));
     }
 
-    template <typename F>
+    template <typename F, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>
     [[nodiscard]] constexpr auto and_then(
-        F&& func) const& -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
-        static_assert(traits::is_invocable_v<F&&, R&&>);
-        static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, R&&>::error_type, E>);
+        F&& func) const& -> Result<typename traits::invoke_result_t<F&&, X&&>::result_type, E> {
+        static_assert(traits::is_invocable_v<F&&, X&&>);
+        static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, X&&>::error_type, E>);
 
         return and_then_(storage_, std::forward<F>(func));
     }
 
-    template <typename F>
+    template <typename F, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>
     [[nodiscard]] constexpr auto and_then(
-        F&& func) const&& -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
-        static_assert(traits::is_invocable_v<F&&, R&&>);
-        static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, R&&>::error_type, E>);
+        F&& func) const&& -> Result<typename traits::invoke_result_t<F&&, X&&>::result_type, E> {
+        static_assert(traits::is_invocable_v<F&&, X&&>);
+        static_assert(std::is_same_v<typename traits::invoke_result_t<F&&, X&&>::error_type, E>);
 
         return and_then_(std::move(storage_), std::forward<F>(func));
     }
 
-    /*
-    TODO: Explain map
-    */
-    template <typename F>
-    [[nodiscard]] constexpr auto map(F&& func) & -> Result<traits::invoke_result_t<F&&, R&&>, E> {
-        static_assert(traits::is_invocable_v<F&&, R&&>);
-        static_assert(std::is_same_v<traits::first_argument_t<F>, R>);
+    // void Result specialization
+    template <typename F, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto and_then(F&& func) & -> Result<typename traits::invoke_result_t<F&&>::result_type, E> {
+        static_assert(traits::is_invocable_v<F&&>);
+        static_assert(std::is_same_v<typename traits::invoke_result_t<F&&>::error_type, E>);
+
+        return and_then_(storage_, std::forward<F>(func));
+    }
+
+    template <typename F, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto and_then(
+        F&& func) && -> Result<typename traits::invoke_result_t<F&&>::result_type, E> {
+        static_assert(traits::is_invocable_v<F&&>);
+        static_assert(std::is_same_v<typename traits::invoke_result_t<F&&>::error_type, E>);
+
+        return and_then_(std::move(storage_), std::forward<F>(func));
+    }
+
+    template <typename F, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto and_then(
+        F&& func) const& -> Result<typename traits::invoke_result_t<F&&>::result_type, E> {
+        static_assert(traits::is_invocable_v<F&&>);
+        static_assert(std::is_same_v<typename traits::invoke_result_t<F&&>::error_type, E>);
+
+        return and_then_(storage_, std::forward<F>(func));
+    }
+
+    template <typename F, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto and_then(
+        F&& func) const&& -> Result<typename traits::invoke_result_t<F&&>::result_type, E> {
+        static_assert(traits::is_invocable_v<F&&>);
+        static_assert(std::is_same_v<typename traits::invoke_result_t<F&&>::error_type, E>);
+
+        return and_then_(std::move(storage_), std::forward<F>(func));
+    }
+
+    // map<R, Func>(Func&& f) -> Result<U, E>
+    // where f(R r) -> U
+    // map: takes a functor that takes the current result and returns a result of type U
+    // Examples:
+    // Result<char, int> r{Ok{'a'}};
+    // auto fin = r.map([](){ return std::string{"a is the first letter in the Latin alphabet"}; });
+
+    // non-void
+    template <typename F, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto map(F&& func) & -> Result<traits::invoke_result_t<F&&, X&&>, E> {
+        static_assert(traits::is_invocable_v<F&&, X&&>);
+        static_assert(std::is_same_v<traits::first_argument_t<F>, X>);
 
         return map_(storage_, func);
     }
 
-    template <typename F>
-    [[nodiscard]] constexpr auto map(F&& func) && -> Result<traits::invoke_result_t<F&&, R&&>, E> {
-        static_assert(traits::is_invocable_v<F&&, R&&>);
-        static_assert(std::is_same_v<traits::first_argument_t<F>, R>);
+    template <typename F, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto map(F&& func) && -> Result<traits::invoke_result_t<F&&, X&&>, E> {
+        static_assert(traits::is_invocable_v<F&&, X&&>);
+        static_assert(std::is_same_v<traits::first_argument_t<F>, X>);
 
         return map_(std::move(storage_), func);
     }
 
-    template <typename F>
-    [[nodiscard]] constexpr auto map(F&& func) const& -> Result<traits::invoke_result_t<F&&, R&&>, E> {
-        static_assert(traits::is_invocable_v<F&&, R&&>);
-        static_assert(std::is_same_v<traits::first_argument_t<F>, R>);
+    template <typename F, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto map(F&& func) const& -> Result<traits::invoke_result_t<F&&, X&&>, E> {
+        static_assert(traits::is_invocable_v<F&&, X&&>);
+        static_assert(std::is_same_v<traits::first_argument_t<F>, X>);
 
         return map_(storage_, func);
     }
 
-    template <typename F>
-    [[nodiscard]] constexpr auto map(F&& func) const&& -> Result<traits::invoke_result_t<F&&, R&&>, E> {
-        static_assert(traits::is_invocable_v<F&&, R&&>);
-        static_assert(std::is_same_v<traits::first_argument_t<F>, R>);
+    template <typename F, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto map(F&& func) const&& -> Result<traits::invoke_result_t<F&&, X&&>, E> {
+        static_assert(traits::is_invocable_v<F&&, X&&>);
+        static_assert(std::is_same_v<traits::first_argument_t<F>, X>);
+
+        return map_(std::move(storage_), func);
+    }
+
+    // void Result specialization
+    template <typename F, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto map(F&& func) & -> Result<traits::invoke_result_t<F&&>, E> {
+        static_assert(traits::is_invocable_v<F&&>);
+
+        return map_(storage_, func);
+    }
+
+    template <typename F, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto map(F&& func) && -> Result<traits::invoke_result_t<F&&>, E> {
+        static_assert(traits::is_invocable_v<F&&>);
+
+        return map_(std::move(storage_), func);
+    }
+
+    template <typename F, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto map(F&& func) const& -> Result<traits::invoke_result_t<F&&>, E> {
+        static_assert(traits::is_invocable_v<F&&>);
+
+        return map_(storage_, func);
+    }
+
+    template <typename F, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto map(F&& func) const&& -> Result<traits::invoke_result_t<F&&>, E> {
+        static_assert(traits::is_invocable_v<F&&>);
 
         return map_(std::move(storage_), func);
     }
 
 private:
-    template <typename S, typename F>
+    template <typename S, typename F, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>
     [[nodiscard]] constexpr auto and_then_(S&& s, F&& func)
-        -> Result<typename traits::invoke_result_t<F&&, R&&>::result_type, E> {
+        -> Result<typename traits::invoke_result_t<F&&, X&&>::result_type, E> {
         if (is_ok()) {
             return func(std::forward<S>(s).get_result());
         } else {
@@ -431,10 +665,29 @@ private:
         }
     }
 
-    template <typename S, typename F>
-    [[nodiscard]] constexpr auto map_(S&& s, F&& func) -> Result<traits::invoke_result_t<F&&, R&&>, E> {
+    template <typename S, typename F, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto and_then_(S&& s, F&& func)
+        -> Result<typename traits::invoke_result_t<F&&>::result_type, E> {
         if (is_ok()) {
-            return Ok<traits::invoke_result_t<F&&, R&&>>{func(std::forward<S>(s).get_result())};
+            return func();
+        } else {
+            return Err<E>{std::forward<S>(s).get_error()};
+        }
+    }
+
+    template <typename S, typename F, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto map_(S&& s, F&& func) -> Result<traits::invoke_result_t<F&&, X&&>, E> {
+        if (is_ok()) {
+            return Ok<traits::invoke_result_t<F&&, X&&>>{func(std::forward<S>(s).get_result())};
+        } else {
+            return Err<E>{std::forward<S>(s).get_error()};
+        }
+    }
+
+    template <typename S, typename F, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto map_(S&& s, F&& func) -> Result<traits::invoke_result_t<F&&>, E> {
+        if (is_ok()) {
+            return Ok<traits::invoke_result_t<F&&>>{func()};
         } else {
             return Err<E>{std::forward<S>(s).get_error()};
         }
