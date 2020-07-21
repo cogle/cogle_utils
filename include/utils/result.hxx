@@ -50,14 +50,40 @@ public:
 
     constexpr ResultStorage(ResultStorage const&) = default;
 
-    constexpr ResultStorage(ResultStorage&& o) noexcept(std::is_nothrow_move_constructible<E>()) :  {
-
+    // TODO noexcept
+    constexpr ResultStorage(ResultStorage&& o) : tag_(o.tag_) {
+        switch (o.tag_) {
+            case ResultTag::OK:
+                result_ = std::move(o.result_);
+                break;
+            case ResultTag::ERR:
+                error_ = std::move(o.error_);
+                break;
+            default:
+                break;
+        }
 
         o.invalidate();
     }
 
     constexpr ResultStorage& operator=(ResultStorage const&) = default;
-    constexpr ResultStorage& operator=(ResultStorage&&) = default;
+
+    // TODO noexcept
+    constexpr ResultStorage& operator=(ResultStorage&& o) {
+        switch (o.tag_) {
+            case ResultTag::OK:
+                result_ = std::move(o.result_);
+                break;
+            case ResultTag::ERR:
+                error_ = std::move(o.error_);
+                break;
+            default:
+                break;
+        }
+
+        tag_ = o.tag_;
+        o.invalidate();
+    }
 
     ~ResultStorage() = default;
 
@@ -104,9 +130,7 @@ public:
     }
 
 private:
-    void invalidate() {
-        tag_ = ResultTag::INVALID;
-    }
+    void invalidate() { tag_ = ResultTag::INVALID; }
 
     ResultTag tag_;
 
@@ -147,7 +171,41 @@ public:
         }
     }
 
-    // TODO MOVE and COPY ASSIGNMENT
+    constexpr ResultStorage(ResultStorage const&) = default;
+
+    // TODO noexcept
+    constexpr ResultStorage(ResultStorage&& o) : tag_(o.tag_) {
+        switch (o.tag_) {
+            case ResultTag::OK:
+                result_ = std::move(o.result_);
+                break;
+            case ResultTag::ERR:
+                error_ = std::move(o.error_);
+                break;
+            default:
+                break;
+        }
+
+        o.invalidate();
+    }
+
+    constexpr ResultStorage& operator=(ResultStorage const&) = default;
+
+    constexpr ResultStorage& operator=(ResultStorage&& o) {
+        switch (o.tag_) {
+            case ResultTag::OK:
+                result_ = std::move(o.result_);
+                break;
+            case ResultTag::ERR:
+                error_ = std::move(o.error_);
+                break;
+            default:
+                break;
+        }
+
+        tag_ = o.tag_;
+        o.invalidate();
+    }
 
     [[nodiscard]] constexpr ResultTag& get_tag() { return tag_; }
 
@@ -192,6 +250,24 @@ public:
     }
 
 private:
+    void invalidate() noexcept {
+        clear();
+        tag_ = ResultTag::INVALID;
+    }
+
+    void clear() noexcept {
+        switch (tag_) {
+            case ResultTag::OK:
+                result_.~R();
+                break;
+            case ResultTag::ERR:
+                error_.~E();
+                break;
+            default:
+                break;
+        }
+    }
+
     ResultTag tag_;
 
     union {
@@ -249,7 +325,7 @@ public:
         return *this;
     }
 
-    constexpr ResultStorage& operator=(ResultStorage&& o) noexcept(std::is_nothrow_move_constructible<E>()) : tag_(o.tag_) {
+    constexpr ResultStorage& operator=(ResultStorage&& o) noexcept(std::is_nothrow_move_constructible<E>()) {
         switch (o.tag_) {
             case ResultTag::OK:
                 break;
@@ -261,6 +337,7 @@ public:
                 break;
         }
 
+        tag_ = o.tag_;
         o.invalidate();
 
         return *this;
@@ -515,7 +592,7 @@ public:
 
     constexpr Result(const Result& o) noexcept(std::is_nothrow_copy_constructible<Storage>()) : storage_(o.storage_) {}
 
-    constexpr Result(Result&& o) noexcept(std::is_nothrow_move_constructible<Storage>()) : std::move(o.storage_) {}
+    constexpr Result(Result&& o) noexcept(std::is_nothrow_move_constructible<Storage>()) : storage_(std::move(o.storage_)) {}
 
     constexpr Result& operator=(Result const& o) {
         storage_ = o.storage_;
