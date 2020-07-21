@@ -208,10 +208,10 @@ public:
     }
 
     ~ResultStorage() {
-        switch(tag_) {
-            case ResultTag::OK: 
+        switch (tag_) {
+            case ResultTag::OK:
                 break;
-            case ResultTag::ERR: 
+            case ResultTag::ERR:
                 std::launder(reinterpret_cast<E*>(&error_))->~E();
                 break;
             default:
@@ -253,23 +253,27 @@ private:
 
 template <typename E>
 class ResultStorage<void, E, std::enable_if_t<!std::is_standard_layout_v<E> || !std::is_trivial_v<E>>> {
-    using type = typename std::aligned_storage<sizeof(E), alignof(E)>::type;
-
 public:
     explicit constexpr ResultStorage(const Ok<void>&) noexcept : tag_(ResultTag::OK) {}
 
     explicit constexpr ResultStorage(const Ok<void>&&) noexcept : tag_(ResultTag::OK) {}
 
     explicit constexpr ResultStorage(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible<E>())
-        : tag_(ResultTag::ERR) {
-        new (&error_) E(err.get_error());
-    }
+        : tag_(ResultTag::ERR), error_(err.get_error()) {}
     explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<E>())
-        : tag_(ResultTag::ERR) {
-        new (&error_) E(std::move(err.get_error()));
-    }
+        : tag_(ResultTag::ERR), error_(std::move(err.get_error())) {}
 
-    ~ResultStorage() = default;
+    ~ResultStorage() {
+        switch (tag_) {
+            case ResultTag::OK:
+                break;
+            case ResultTag::ERR:
+                error_.~E();
+                break;
+            default:
+                break;
+        }
+    }
 
     // TODO MOVE and COPY ASSIGNMENT
 
@@ -297,7 +301,7 @@ public:
 
 private:
     ResultTag tag_;
-    type error_;
+    E error_;
 
     template <typename Rv, typename Ev>
     friend class result::Result;
