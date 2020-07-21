@@ -23,9 +23,8 @@ template <typename R, typename E>
 class Result;
 
 namespace detail {
-enum class ResultTag { OK = 0, ERR = 1 };
+enum class ResultTag { OK = 0, ERR = 1, INVALID = 2 };
 
-// TODO MOVE __FUNCTION__ and __LINE__ into their own class
 constexpr void assert_ok(const ResultTag tag,
                          const location::SourceLocation& sl = location::SourceLocation::current()) {
     abort::cogle_assert(tag == ResultTag::OK, "Expected OK tag to be valid ", sl);
@@ -48,6 +47,17 @@ public:
         : tag_(ResultTag::ERR), error_(err.get_error()) {}
     explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<E>())
         : tag_(ResultTag::ERR), error_(std::move(err.get_error())) {}
+
+    constexpr ResultStorage(ResultStorage const&) = default;
+
+    constexpr ResultStorage(ResultStorage&& o) noexcept(std::is_nothrow_move_constructible<E>()) :  {
+
+
+        o.invalidate();
+    }
+
+    constexpr ResultStorage& operator=(ResultStorage const&) = default;
+    constexpr ResultStorage& operator=(ResultStorage&&) = default;
 
     ~ResultStorage() = default;
 
@@ -94,6 +104,10 @@ public:
     }
 
 private:
+    void invalidate() {
+        tag_ = ResultTag::INVALID;
+    }
+
     ResultTag tag_;
 
     union {
@@ -219,7 +233,38 @@ public:
         }
     }
 
-    // TODO MOVE and COPY ASSIGNMENT
+    constexpr ResultStorage& operator=(const ResultStorage& o) noexcept(std::is_nothrow_copy_constructible<E>()) {
+        switch (o.tag_) {
+            case ResultTag::OK:
+                break;
+            case ResultTag::ERR:
+                new (&error_) E(*std::launder(reinterpret_cast<E*>(&o.error_)));
+                break;
+            default:
+                break;
+        }
+
+        tag_ = o.tag_;
+
+        return *this;
+    }
+
+    constexpr ResultStorage& operator=(ResultStorage&& o) noexcept(std::is_nothrow_move_constructible<E>()) : tag_(o.tag_) {
+        switch (o.tag_) {
+            case ResultTag::OK:
+                break;
+            case ResultTag::ERR:
+                new (&error_) E(std::move(*std::launder(reinterpret_cast<E*>(&o.error_))));
+                o.tag_ = ResultTag::INVALID;
+                break;
+            default:
+                break;
+        }
+
+        o.invalidate();
+
+        return *this;
+    }
 
     [[nodiscard]] constexpr ResultTag& get_tag() { return tag_; }
 
@@ -244,8 +289,12 @@ public:
     }
 
 private:
+    void invalidate() { tag_ = ResultTag::INVALID; }
+
     ResultTag tag_;
-    type error_;
+    union {
+        type error_;
+    };
 
     template <typename Rv, typename Ev>
     friend class result::Result;
@@ -275,8 +324,6 @@ public:
         }
     }
 
-    // TODO MOVE and COPY ASSIGNMENT
-
     [[nodiscard]] constexpr ResultTag& get_tag() { return tag_; }
 
     [[nodiscard]] constexpr E& get_error() & noexcept {
@@ -301,7 +348,9 @@ public:
 
 private:
     ResultTag tag_;
-    E error_;
+    union {
+        E error_;
+    };
 
     template <typename Rv, typename Ev>
     friend class result::Result;
@@ -464,11 +513,19 @@ public:
 
     ~Result() = default;
 
-    constexpr Result(Result&&) = default;
-    constexpr Result& operator=(Result&&) = default;
+    constexpr Result(const Result& o) noexcept(std::is_nothrow_copy_constructible<Storage>()) : storage_(o.storage_) {}
 
-    constexpr Result(Result const&) = default;
-    constexpr Result& operator=(Result const&) = default;
+    constexpr Result(Result&& o) noexcept(std::is_nothrow_move_constructible<Storage>()) : std::move(o.storage_) {}
+
+    constexpr Result& operator=(Result const& o) {
+        storage_ = o.storage_;
+        return *this;
+    }
+
+    constexpr Result& operator=(Result&& o) {
+        storage_ = std::move(o.storage_);
+        return *this;
+    }
 
     [[nodiscard]] constexpr bool is_ok() { return storage_.tag_ == TagEnum::OK; }
 
