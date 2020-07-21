@@ -190,7 +190,7 @@ private:
 };
 
 template <typename E>
-class ResultStorage<void, E, std::enable_if_t<std::is_trivially_destructible_v<E>>> {
+class ResultStorage<void, E, std::enable_if_t<std::is_standard_layout_v<E> && std::is_trivial_v<E>>> {
     using type = typename std::aligned_storage<sizeof(E), alignof(E)>::type;
 
 public:
@@ -207,7 +207,17 @@ public:
         new (&error_) E(std::move(err.get_error()));
     }
 
-    ~ResultStorage() = default;
+    ~ResultStorage() {
+        switch(tag_) {
+            case ResultTag::OK: 
+                break;
+            case ResultTag::ERR: 
+                std::launder(reinterpret_cast<E*>(&error_))->~E();
+                break;
+            default:
+                break;
+        }
+    }
 
     // TODO MOVE and COPY ASSIGNMENT
 
@@ -242,7 +252,7 @@ private:
 };
 
 template <typename E>
-class ResultStorage<void, E, std::enable_if_t<!std::is_trivially_destructible_v<E>>> {
+class ResultStorage<void, E, std::enable_if_t<!std::is_standard_layout_v<E> || !std::is_trivial_v<E>>> {
     using type = typename std::aligned_storage<sizeof(E), alignof(E)>::type;
 
 public:
