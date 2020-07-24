@@ -176,9 +176,7 @@ public:
         o.invalidate();
     }
 
-    ~ResultStorage() noexcept(noexcept(std::declval<R>().~R()) && noexcept(std::declval<E>().~E())) {
-        clear();
-    }
+    ~ResultStorage() noexcept(noexcept(std::declval<R>().~R()) && noexcept(std::declval<E>().~E())) { clear(); }
 
     constexpr ResultStorage& operator=(ResultStorage const&) = default;
 
@@ -438,9 +436,7 @@ public:
         o.invalidate();
     }
 
-    ~ResultStorage() {
-        clear();
-    }
+    ~ResultStorage() { clear(); }
 
     constexpr ResultStorage& operator=(const ResultStorage& o) noexcept(std::is_nothrow_copy_constructible<E>()) {
         switch (o.tag_) {
@@ -474,8 +470,6 @@ public:
 
         return *this;
     }
-
-
 
     [[nodiscard]] constexpr ResultTag& get_tag() { return tag_; }
 
@@ -681,12 +675,12 @@ public:
     [[nodiscard]] constexpr Result(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<Storage>())
         : storage_(std::move(err)) {}
 
-    ~Result() = default;
-
     constexpr Result(const Result& o) noexcept(std::is_nothrow_copy_constructible<Storage>()) : storage_(o.storage_) {}
 
     constexpr Result(Result&& o) noexcept(std::is_nothrow_move_constructible<Storage>())
         : storage_(std::move(o.storage_)) {}
+
+    ~Result() = default;
 
     constexpr Result& operator=(Result const& o) {
         storage_ = o.storage_;
