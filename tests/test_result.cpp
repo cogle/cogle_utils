@@ -125,7 +125,7 @@ TEST_CASE("Result Construct Err", "[result]") {
         REQUIRE_FALSE(result.is_ok());
         REQUIRE_FALSE(result.is_err());
     }
-    SECTION("Result<void, int> copy constrcut") {
+    SECTION("Result<void, int> Err lvalue constrcut") {
         constexpr int a = 1;
 
         Err<int> err_int{a};
@@ -134,7 +134,7 @@ TEST_CASE("Result Construct Err", "[result]") {
         REQUIRE_FALSE(result.is_ok());
         REQUIRE(result.is_err());
     }
-    SECTION("Result<void, int> move construct") {
+    SECTION("Result<void, int> Err rvalue construct") {
         constexpr int a = 1;
 
         Result<void, int> result{Err<int>{a}};
