@@ -89,7 +89,7 @@ TEST_CASE("Result Construct Err", "[result]") {
 
         Err<int> err_int{a};
         Result<char, int> result{err_int};
-        
+
         REQUIRE_FALSE(result.is_ok());
         REQUIRE(result.is_err());
     }

@@ -158,16 +158,27 @@ public:
     explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<E>())
         : tag_(ResultTag::ERR), error_(std::move(err.get_error())) {}
 
-    constexpr ResultStorage(ResultStorage const&) = default;
+    constexpr ResultStorage(ResultStorage const& o) : tag_(o.tag_) {
+        switch (o.tag_) {
+            case ResultTag::OK:
+                new (&result_) R(o.result_);
+                break;
+            case ResultTag::ERR:
+                new (&error_) R(o.error_);
+                break;
+            default:
+                break;
+        }
+    }
 
     // TODO noexcept
     constexpr ResultStorage(ResultStorage&& o) : tag_(o.tag_) {
         switch (o.tag_) {
             case ResultTag::OK:
-                result_ = std::move(o.result_);
+                new (&result_) R(std::move(o.result_));
                 break;
             case ResultTag::ERR:
-                error_ = std::move(o.error_);
+                new (&error_) E(std::move(o.error_));
                 break;
             default:
                 break;
@@ -178,9 +189,24 @@ public:
 
     ~ResultStorage() noexcept(noexcept(std::declval<R>().~R()) && noexcept(std::declval<E>().~E())) { clear(); }
 
-    constexpr ResultStorage& operator=(ResultStorage const&) = default;
+    constexpr ResultStorage& operator=(ResultStorage const& o) {
+        // TODO clear up any previous thing here
+        switch (o.tag_) {
+            case ResultTag::OK:
+                result_ = o.result_;
+                break;
+            case ResultTag::ERR:
+                error_ = o.error_;
+                break;
+            default:
+                break;
+        }
+
+        tag_ = o.tag_;
+    }
 
     constexpr ResultStorage& operator=(ResultStorage&& o) {
+        // TODO clear up any previous thing here destructor
         switch (o.tag_) {
             case ResultTag::OK:
                 result_ = std::move(o.result_);
