@@ -38,20 +38,22 @@ constexpr void assert_err(const ResultTag tag,
 template <typename R, typename E, typename Enabled = void>
 class ResultStorage {
 public:
-    explicit constexpr ResultStorage(const Ok<R>& ok) noexcept(std::is_nothrow_copy_constructible<R>())
+    explicit constexpr ResultStorage(const Ok<R>& ok) noexcept(std::is_nothrow_copy_constructible_v<R>)
         : tag_(ResultTag::OK), result_(ok.get_result()) {}
-    explicit constexpr ResultStorage(const Ok<R>&& ok) noexcept(std::is_nothrow_move_constructible<R>())
+    explicit constexpr ResultStorage(const Ok<R>&& ok) noexcept(std::is_nothrow_move_constructible_v<R>)
         : tag_(ResultTag::OK), result_(std::move(ok.get_result())) {}
 
-    explicit constexpr ResultStorage(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible<E>())
+    explicit constexpr ResultStorage(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible_v<E>)
         : tag_(ResultTag::ERR), error_(err.get_error()) {}
-    explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<E>())
+    explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible_v<E>)
         : tag_(ResultTag::ERR), error_(std::move(err.get_error())) {}
 
     constexpr ResultStorage(ResultStorage const&) = default;
 
     // TODO noexcept
-    constexpr ResultStorage(ResultStorage&& o) : tag_(o.tag_) {
+    constexpr ResultStorage(ResultStorage&& o) noexcept(
+        std::is_nothrow_move_constructible_v<R>&& std::is_nothrow_move_constructible_v<E>)
+        : tag_(o.tag_) {
         switch (o.tag_) {
             case ResultTag::OK:
                 result_ = std::move(o.result_);
@@ -70,8 +72,8 @@ public:
 
     constexpr ResultStorage& operator=(ResultStorage const&) = default;
 
-    // TODO noexcept
-    constexpr ResultStorage& operator=(ResultStorage&& o) {
+    constexpr ResultStorage& operator=(ResultStorage&& o) noexcept(
+        std::is_nothrow_move_constructible_v<R>&& std::is_nothrow_move_constructible_v<E>) {
         switch (o.tag_) {
             case ResultTag::OK:
                 result_ = std::move(o.result_);
@@ -148,31 +150,34 @@ class ResultStorage<R, E,
                     std::enable_if_t<!std::is_void_v<R> &&
                                      (!std::is_trivially_destructible_v<R> || !std::is_trivially_destructible_v<E>)>> {
 public:
-    explicit constexpr ResultStorage(const Ok<R>& ok) noexcept(std::is_nothrow_copy_constructible<R>())
+    explicit constexpr ResultStorage(const Ok<R>& ok) noexcept(std::is_nothrow_copy_constructible_v<R>)
         : tag_(ResultTag::OK), result_(ok.get_result()) {}
-    explicit constexpr ResultStorage(const Ok<R>&& ok) noexcept(std::is_nothrow_move_constructible<R>())
+    explicit constexpr ResultStorage(const Ok<R>&& ok) noexcept(std::is_nothrow_move_constructible_v<R>)
         : tag_(ResultTag::OK), result_(std::move(ok.get_result())) {}
 
-    explicit constexpr ResultStorage(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible<E>())
+    explicit constexpr ResultStorage(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible_v<E>)
         : tag_(ResultTag::ERR), error_(err.get_error()) {}
-    explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<E>())
+    explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible_v<E>)
         : tag_(ResultTag::ERR), error_(std::move(err.get_error())) {}
 
-    constexpr ResultStorage(ResultStorage const& o) : tag_(o.tag_) {
+    constexpr ResultStorage(ResultStorage const& o) noexcept(
+        std::is_nothrow_copy_constructible_v<R>&& std::is_nothrow_copy_constructible_v<E>)
+        : tag_(o.tag_) {
         switch (o.tag_) {
             case ResultTag::OK:
                 new (&result_) R(o.result_);
                 break;
             case ResultTag::ERR:
-                new (&error_) R(o.error_);
+                new (&error_) E(o.error_);
                 break;
             default:
                 break;
         }
     }
 
-    // TODO noexcept
-    constexpr ResultStorage(ResultStorage&& o) : tag_(o.tag_) {
+    constexpr ResultStorage(ResultStorage&& o) noexcept(
+        std::is_nothrow_move_constructible_v<R>&& std::is_nothrow_move_constructible_v<E>)
+        : tag_(o.tag_) {
         switch (o.tag_) {
             case ResultTag::OK:
                 new (&result_) R(std::move(o.result_));
@@ -189,7 +194,8 @@ public:
 
     ~ResultStorage() noexcept(noexcept(std::declval<R>().~R()) && noexcept(std::declval<E>().~E())) { clear(); }
 
-    constexpr ResultStorage& operator=(ResultStorage const& o) {
+    constexpr ResultStorage& operator=(ResultStorage const& o) noexcept(
+        std::is_nothrow_copy_constructible_v<R>&& std::is_nothrow_copy_constructible_v<E>) {
         // TODO clear up any previous thing here
         switch (o.tag_) {
             case ResultTag::OK:
@@ -205,7 +211,8 @@ public:
         tag_ = o.tag_;
     }
 
-    constexpr ResultStorage& operator=(ResultStorage&& o) {
+    constexpr ResultStorage& operator=(ResultStorage&& o) noexcept(
+        std::is_nothrow_move_constructible_v<R>&& std::is_nothrow_move_constructible_v<E>) {
         // TODO clear up any previous thing here destructor
         switch (o.tag_) {
             case ResultTag::OK:

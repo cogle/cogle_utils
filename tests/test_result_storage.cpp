@@ -254,13 +254,67 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage]") {
         REQUIRE(not_trivial_storage.not_trivial == not_trivial.not_trivial);
         REQUIRE(*not_trivial_storage.not_trivial == *not_trivial.not_trivial);
 
-        // auto& not_trivial_storage_cpy = storage_cpy.get_result();
+        auto& not_trivial_storage_cpy = storage_cpy.get_result();
 
-        // REQUIRE(storage_cpy.get_tag() == detail::ResultTag::OK);
+        REQUIRE(storage_cpy.get_tag() == detail::ResultTag::OK);
 
-        // REQUIRE(not_trivial_storage_cpy.str == not_trivial.str);
-        // REQUIRE(not_trivial_storage_cpy.not_trivial == not_trivial.not_trivial);
-        // REQUIRE(*not_trivial_storage_cpy.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage_cpy.str == not_trivial.str);
+        REQUIRE(not_trivial_storage_cpy.not_trivial == not_trivial.not_trivial);
+        REQUIRE(*not_trivial_storage_cpy.not_trivial == *not_trivial.not_trivial);
+    }
+    SECTION("ResultStorage<NotSoTrivial, int> copy creation [Err<int>]") {
+        auto err_val = 100;
+        Err<int> err{err_val};
+
+        detail::ResultStorage<NotSoTrivial, int> storage{err};
+        detail::ResultStorage<NotSoTrivial, int> storage_cpy{storage};
+
+        REQUIRE(storage.get_tag() == detail::ResultTag::ERR);
+        REQUIRE(storage.get_error() == err_val);
+
+        REQUIRE(storage_cpy.get_tag() == detail::ResultTag::ERR);
+        REQUIRE(storage_cpy.get_error() == err_val);
+    }
+    SECTION("ResultStorage<int, NotSoTrivial> copy creation [Ok<int>]") {
+        auto ok_val = 100;
+        Ok<int> ok{ok_val};
+
+        detail::ResultStorage<int, NotSoTrivial> storage{ok};
+        detail::ResultStorage<int, NotSoTrivial> storage_cpy{storage};
+
+        REQUIRE(storage.get_tag() == detail::ResultTag::OK);
+        REQUIRE(storage.get_result() == ok_val);
+
+        REQUIRE(storage_cpy.get_tag() == detail::ResultTag::OK);
+        REQUIRE(storage_cpy.get_result() == ok_val);
+    }
+    SECTION("ResultStorage<NotSoTrivial, int> copy creation [Err<NotSoTrivial>]") {
+        auto int_ptr             = std::make_shared<int>(100);
+        const std::string phrase = "This is a test of template deduction";
+
+        NotSoTrivial not_trivial{phrase, int_ptr};
+
+        Err<NotSoTrivial> err{not_trivial};
+
+        REQUIRE_FALSE(std::is_trivially_destructible<NotSoTrivial>::value);
+
+        detail::ResultStorage<int, NotSoTrivial> storage{err};
+        detail::ResultStorage<int, NotSoTrivial> storage_cpy{storage};
+
+        auto& not_trivial_storage = storage.get_error();
+
+        REQUIRE(storage.get_tag() == detail::ResultTag::ERR);
+        REQUIRE(not_trivial_storage.str == not_trivial.str);
+        REQUIRE(not_trivial_storage.not_trivial == not_trivial.not_trivial);
+        REQUIRE(*not_trivial_storage.not_trivial == *not_trivial.not_trivial);
+
+        auto& not_trivial_storage_cpy = storage_cpy.get_error();
+
+        REQUIRE(storage_cpy.get_tag() == detail::ResultTag::ERR);
+
+        REQUIRE(not_trivial_storage_cpy.str == not_trivial.str);
+        REQUIRE(not_trivial_storage_cpy.not_trivial == not_trivial.not_trivial);
+        REQUIRE(*not_trivial_storage_cpy.not_trivial == *not_trivial.not_trivial);
     }
 }
 
