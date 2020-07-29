@@ -163,32 +163,13 @@ public:
     constexpr ResultStorage(ResultStorage const& o) noexcept(
         std::is_nothrow_copy_constructible_v<R>&& std::is_nothrow_copy_constructible_v<E>)
         : tag_(o.tag_) {
-        switch (o.tag_) {
-            case ResultTag::OK:
-                new (&result_) R(o.result_);
-                break;
-            case ResultTag::ERR:
-                new (&error_) E(o.error_);
-                break;
-            default:
-                break;
-        }
+        assign(o);
     }
 
     constexpr ResultStorage(ResultStorage&& o) noexcept(
         std::is_nothrow_move_constructible_v<R>&& std::is_nothrow_move_constructible_v<E>)
         : tag_(o.tag_) {
-        switch (o.tag_) {
-            case ResultTag::OK:
-                new (&result_) R(std::move(o.result_));
-                break;
-            case ResultTag::ERR:
-                new (&error_) E(std::move(o.error_));
-                break;
-            default:
-                break;
-        }
-
+        assign(std::move(o));
         o.invalidate();
     }
 
@@ -196,35 +177,13 @@ public:
 
     constexpr ResultStorage& operator=(ResultStorage const& o) noexcept(
         std::is_nothrow_copy_constructible_v<R>&& std::is_nothrow_copy_constructible_v<E>) {
-        // TODO clear up any previous thing here
-        switch (o.tag_) {
-            case ResultTag::OK:
-                result_ = o.result_;
-                break;
-            case ResultTag::ERR:
-                error_ = o.error_;
-                break;
-            default:
-                break;
-        }
-
+        assign(o);
         tag_ = o.tag_;
     }
 
     constexpr ResultStorage& operator=(ResultStorage&& o) noexcept(
         std::is_nothrow_move_constructible_v<R>&& std::is_nothrow_move_constructible_v<E>) {
-        // TODO clear up any previous thing here destructor
-        switch (o.tag_) {
-            case ResultTag::OK:
-                result_ = std::move(o.result_);
-                break;
-            case ResultTag::ERR:
-                error_ = std::move(o.error_);
-                break;
-            default:
-                break;
-        }
-
+        assign(std::move(o));
         tag_ = o.tag_;
         o.invalidate();
     }
@@ -272,6 +231,20 @@ public:
     }
 
 private:
+    template <typename U>
+    void assign(U&& u) {
+        switch (u.tag_) {
+            case ResultTag::OK:
+                new (&result_) R(std::forward<U>(u).get_result());
+                break;
+            case ResultTag::ERR:
+                new (&error_) E(std::forward<U>(u).get_error());
+                break;
+            default:
+                break;
+        }
+    }
+
     void invalidate() noexcept {
         clear();
         tag_ = ResultTag::INVALID;
@@ -447,7 +420,7 @@ public:
             case ResultTag::OK:
                 break;
             case ResultTag::ERR:
-                error_ = o.error_;
+                new (&error_) E(o.error_);
                 break;
             default:
                 break;
