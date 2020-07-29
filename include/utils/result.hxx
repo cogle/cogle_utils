@@ -87,6 +87,8 @@ public:
 
         tag_ = o.tag_;
         o.invalidate();
+
+        return *this;
     }
 
     [[nodiscard]] constexpr ResultTag& get_tag() { return tag_; }
@@ -179,6 +181,8 @@ public:
         std::is_nothrow_copy_constructible_v<R>&& std::is_nothrow_copy_constructible_v<E>) {
         assign(o);
         tag_ = o.tag_;
+
+        return *this;
     }
 
     constexpr ResultStorage& operator=(ResultStorage&& o) noexcept(
@@ -186,6 +190,8 @@ public:
         assign(std::move(o));
         tag_ = o.tag_;
         o.invalidate();
+
+        return *this;
     }
 
     [[nodiscard]] constexpr ResultTag& get_tag() { return tag_; }
@@ -245,11 +251,6 @@ private:
         }
     }
 
-    void invalidate() noexcept {
-        clear();
-        tag_ = ResultTag::INVALID;
-    }
-
     void clear() noexcept {
         switch (tag_) {
             case ResultTag::OK:
@@ -261,6 +262,11 @@ private:
             default:
                 break;
         }
+    }
+
+    void invalidate() noexcept {
+        clear();
+        tag_ = ResultTag::INVALID;
     }
 
     ResultTag tag_;
@@ -292,62 +298,25 @@ public:
         new (&error_) E(std::move(err.get_error()));
     }
 
-    constexpr ResultStorage(ResultStorage const& o) : tag_(o.tag_) {
-        switch (o.tag_) {
-            case ResultTag::OK:
-                break;
-            case ResultTag::ERR:
-                new (&error_) E(*std::launder(reinterpret_cast<const E*>(&o.error_)));
-                break;
-            default:
-                break;
-        }
-    }
+    constexpr ResultStorage(ResultStorage const& o) : tag_(o.tag_) { assign(o); }
 
     // TODO noexcept
     constexpr ResultStorage(ResultStorage&& o) : tag_(o.tag_) {
-        switch (o.tag_) {
-            case ResultTag::OK:
-                break;
-            case ResultTag::ERR:
-                new (&error_) E(std::move(*std::launder(reinterpret_cast<E*>(&o.error_))));
-                break;
-            default:
-                break;
-        }
-
+        assign(std::move(o));
         o.invalidate();
     }
 
     ~ResultStorage() { clear(); }
 
     constexpr ResultStorage& operator=(const ResultStorage& o) noexcept(std::is_nothrow_copy_constructible<E>()) {
-        switch (o.tag_) {
-            case ResultTag::OK:
-                break;
-            case ResultTag::ERR:
-                new (&error_) E(*std::launder(reinterpret_cast<E*>(&o.error_)));
-                break;
-            default:
-                break;
-        }
-
+        assign(o);
         tag_ = o.tag_;
 
         return *this;
     }
 
     constexpr ResultStorage& operator=(ResultStorage&& o) noexcept(std::is_nothrow_move_constructible<E>()) {
-        switch (o.tag_) {
-            case ResultTag::OK:
-                break;
-            case ResultTag::ERR:
-                new (&error_) E(std::move(*std::launder(reinterpret_cast<E*>(&o.error_))));
-                break;
-            default:
-                break;
-        }
-
+        assign(std::move(o));
         tag_ = o.tag_;
         o.invalidate();
 
@@ -377,6 +346,19 @@ public:
     }
 
 private:
+    template <typename U>
+    void assign(U&& u) {
+        switch (u.tag_) {
+            case ResultTag::OK:
+                break;
+            case ResultTag::ERR:
+                new (&error_) E(std::forward<U>(u).get_error());
+                break;
+            default:
+                break;
+        }
+    }
+
     void clear() {
         switch (tag_) {
             case ResultTag::OK:
@@ -415,62 +397,25 @@ public:
     explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<E>())
         : tag_(ResultTag::ERR), error_(std::move(err.get_error())) {}
 
-    constexpr ResultStorage(ResultStorage const& o) : tag_(o.tag_) {
-        switch (o.tag_) {
-            case ResultTag::OK:
-                break;
-            case ResultTag::ERR:
-                new (&error_) E(o.error_);
-                break;
-            default:
-                break;
-        }
-    }
+    constexpr ResultStorage(ResultStorage const& o) : tag_(o.tag_) { assign(o); }
 
     // TODO noexcept
     constexpr ResultStorage(ResultStorage&& o) : tag_(o.tag_) {
-        switch (o.tag_) {
-            case ResultTag::OK:
-                break;
-            case ResultTag::ERR:
-                error_ = std::move(o.error_);
-                break;
-            default:
-                break;
-        }
-
+        assign(std::move(o));
         o.invalidate();
     }
 
     ~ResultStorage() { clear(); }
 
     constexpr ResultStorage& operator=(const ResultStorage& o) noexcept(std::is_nothrow_copy_constructible<E>()) {
-        switch (o.tag_) {
-            case ResultTag::OK:
-                break;
-            case ResultTag::ERR:
-                error_ = o.error_;
-                break;
-            default:
-                break;
-        }
-
+        assign(o);
         tag_ = o.tag_;
 
         return *this;
     }
 
     constexpr ResultStorage& operator=(ResultStorage&& o) noexcept(std::is_nothrow_move_constructible<E>()) {
-        switch (o.tag_) {
-            case ResultTag::OK:
-                break;
-            case ResultTag::ERR:
-                error_ = std::move(o.error_);
-                break;
-            default:
-                break;
-        }
-
+        assign(std::move(o));
         tag_ = o.tag_;
         o.invalidate();
 
@@ -500,6 +445,19 @@ public:
     }
 
 private:
+    template <typename U>
+    void assign(U&& u) {
+        switch (u.tag_) {
+            case ResultTag::OK:
+                break;
+            case ResultTag::ERR:
+                new (&error_) E(std::forward<U>(u).get_error());
+                break;
+            default:
+                break;
+        }
+    }
+
     void clear() {
         switch (tag_) {
             case ResultTag::OK:
