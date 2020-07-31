@@ -172,6 +172,7 @@ public:
 
     constexpr ResultStorage& operator=(ResultStorage const& o) noexcept(
         std::is_nothrow_copy_constructible_v<R>&& std::is_nothrow_copy_constructible_v<E>) {
+        clear();
         assign(o);
         tag_ = o.tag_;
 
@@ -180,6 +181,7 @@ public:
 
     constexpr ResultStorage& operator=(ResultStorage&& o) noexcept(
         std::is_nothrow_move_constructible_v<R>&& std::is_nothrow_move_constructible_v<E>) {
+        clear();
         assign(std::move(o));
         tag_ = o.tag_;
         o.invalidate();
@@ -303,6 +305,7 @@ public:
     ~ResultStorage() { clear(); }
 
     constexpr ResultStorage& operator=(const ResultStorage& o) noexcept(std::is_nothrow_copy_constructible_v<E>) {
+        clear();
         assign(o);
         tag_ = o.tag_;
 
@@ -310,6 +313,7 @@ public:
     }
 
     constexpr ResultStorage& operator=(ResultStorage&& o) noexcept(std::is_nothrow_move_constructible_v<E>) {
+        clear();
         assign(std::move(o));
         tag_ = o.tag_;
         o.invalidate();
@@ -403,6 +407,7 @@ public:
     ~ResultStorage() { clear(); }
 
     constexpr ResultStorage& operator=(const ResultStorage& o) noexcept(std::is_nothrow_copy_constructible_v<E>) {
+        clear();
         assign(o);
         tag_ = o.tag_;
 
@@ -410,6 +415,7 @@ public:
     }
 
     constexpr ResultStorage& operator=(ResultStorage&& o) noexcept(std::is_nothrow_move_constructible_v<E>) {
+        clear();
         assign(std::move(o));
         tag_ = o.tag_;
         o.invalidate();

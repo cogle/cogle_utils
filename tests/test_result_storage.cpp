@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -9,12 +10,13 @@
 namespace {
 
 struct NotSoTrivial {
-    NotSoTrivial(std::string s, std::shared_ptr<int> p) : str(s), not_trivial(p) {}
+    NotSoTrivial(std::string s, std::shared_ptr<int> p) : str(s), int_ptr(p) {}
 
     std::string str;
-    std::shared_ptr<int> not_trivial;
+    std::shared_ptr<int> int_ptr;
 };
 
+// TODO tests with this more complex type
 struct AnotherNotSoTrivial {
     AnotherNotSoTrivial(NotSoTrivial n, std::unordered_map<int, std::string> n_m, std::vector<int> n_v)
         : not_trivial(n), num_map(n_m), num_vec(n_v) {}
@@ -191,8 +193,8 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage]") {
 
         REQUIRE(storage.get_tag() == detail::ResultTag::OK);
         REQUIRE(not_trivial_storage.str == not_trivial.str);
-        REQUIRE(not_trivial_storage.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage.int_ptr == *not_trivial.int_ptr);
     }
     SECTION("ResultStorage<NotSoTrivial, int> Ok<NotSoTrivial> rvalue construction") {
         auto int_ptr             = std::make_shared<int>(100);
@@ -209,7 +211,7 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage]") {
 
         REQUIRE(storage.get_tag() == detail::ResultTag::OK);
         REQUIRE(not_trivial_storage.str == not_trivial.str);
-        REQUIRE(*not_trivial_storage.not_trivial == *int_ptr);
+        REQUIRE(*not_trivial_storage.int_ptr == *int_ptr);
     }
     SECTION("ResultStorage<int, NotSoTrivial> Err<NotSoTrivial> lvalue construction") {
         auto int_ptr             = std::make_shared<int>(100);
@@ -226,8 +228,8 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage]") {
 
         REQUIRE(storage.get_tag() == detail::ResultTag::ERR);
         REQUIRE(not_trivial_storage.str == not_trivial.str);
-        REQUIRE(not_trivial_storage.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage.int_ptr == *not_trivial.int_ptr);
     }
     SECTION("ResultStorage<int, NotSoTrivial> Err<NotSoTrivial> rvalue construction") {
         auto int_ptr             = std::make_shared<int>(100);
@@ -244,7 +246,7 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage]") {
 
         REQUIRE(storage.get_tag() == detail::ResultTag::ERR);
         REQUIRE(not_trivial_storage.str == not_trivial.str);
-        REQUIRE(*not_trivial_storage.not_trivial == *int_ptr);
+        REQUIRE(*not_trivial_storage.int_ptr == *int_ptr);
     }
     SECTION("ResultStorage<NotSoTrivial, int> copy construction [Ok<NotSoTrivial>]") {
         auto int_ptr             = std::make_shared<int>(100);
@@ -263,16 +265,16 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage]") {
 
         REQUIRE(storage.get_tag() == detail::ResultTag::OK);
         REQUIRE(not_trivial_storage.str == not_trivial.str);
-        REQUIRE(not_trivial_storage.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage.int_ptr == *not_trivial.int_ptr);
 
         auto& not_trivial_storage_cpy = storage_cpy.get_result();
 
         REQUIRE(storage_cpy.get_tag() == detail::ResultTag::OK);
 
         REQUIRE(not_trivial_storage_cpy.str == not_trivial.str);
-        REQUIRE(not_trivial_storage_cpy.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage_cpy.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage_cpy.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage_cpy.int_ptr == *not_trivial.int_ptr);
     }
     SECTION("ResultStorage<NotSoTrivial, int> copy construction [Err<int>]") {
         auto err_val = 100;
@@ -317,16 +319,16 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage]") {
 
         REQUIRE(storage.get_tag() == detail::ResultTag::ERR);
         REQUIRE(not_trivial_storage.str == not_trivial.str);
-        REQUIRE(not_trivial_storage.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage.int_ptr == *not_trivial.int_ptr);
 
         auto& not_trivial_storage_cpy = storage_cpy.get_error();
 
         REQUIRE(storage_cpy.get_tag() == detail::ResultTag::ERR);
 
         REQUIRE(not_trivial_storage_cpy.str == not_trivial.str);
-        REQUIRE(not_trivial_storage_cpy.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage_cpy.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage_cpy.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage_cpy.int_ptr == *not_trivial.int_ptr);
     }
     SECTION("ResultStorage<NotSoTrivial, int> copy assignment [Ok<NotSoTrivial>]") {
         auto int_ptr             = std::make_shared<int>(100);
@@ -345,16 +347,16 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage]") {
 
         REQUIRE(storage.get_tag() == detail::ResultTag::OK);
         REQUIRE(not_trivial_storage.str == not_trivial.str);
-        REQUIRE(not_trivial_storage.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage.int_ptr == *not_trivial.int_ptr);
 
         auto& not_trivial_storage_cpy = storage_cpy.get_result();
 
         REQUIRE(storage_cpy.get_tag() == detail::ResultTag::OK);
 
         REQUIRE(not_trivial_storage_cpy.str == not_trivial.str);
-        REQUIRE(not_trivial_storage_cpy.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage_cpy.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage_cpy.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage_cpy.int_ptr == *not_trivial.int_ptr);
     }
     SECTION("ResultStorage<NotSoTrivial, int> copy assignment [Err<int>]") {
         auto err_val = 100;
@@ -399,16 +401,16 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage]") {
 
         REQUIRE(storage.get_tag() == detail::ResultTag::ERR);
         REQUIRE(not_trivial_storage.str == not_trivial.str);
-        REQUIRE(not_trivial_storage.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage.int_ptr == *not_trivial.int_ptr);
 
         auto& not_trivial_storage_cpy = storage_cpy.get_error();
 
         REQUIRE(storage_cpy.get_tag() == detail::ResultTag::ERR);
 
         REQUIRE(not_trivial_storage_cpy.str == not_trivial.str);
-        REQUIRE(not_trivial_storage_cpy.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage_cpy.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage_cpy.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage_cpy.int_ptr == *not_trivial.int_ptr);
     }
     SECTION("ResultStorage<NotSoTrivial, int> move construction [Ok<NotSoTrivial>]") {
         auto int_ptr             = std::make_shared<int>(100);
@@ -430,8 +432,8 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage]") {
         REQUIRE(storage_mv.get_tag() == detail::ResultTag::OK);
 
         REQUIRE(not_trivial_storage_mv.str == not_trivial.str);
-        REQUIRE(not_trivial_storage_mv.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage_mv.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage_mv.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage_mv.int_ptr == *not_trivial.int_ptr);
     }
     SECTION("ResultStorage<NotSoTrivial, int> move construction [Err<int>]") {
         auto err_val = 100;
@@ -477,8 +479,8 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage]") {
         REQUIRE(storage_mv.get_tag() == detail::ResultTag::ERR);
 
         REQUIRE(not_trivial_storage_mv.str == not_trivial.str);
-        REQUIRE(not_trivial_storage_mv.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage_mv.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage_mv.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage_mv.int_ptr == *not_trivial.int_ptr);
     }
     SECTION("ResultStorage<NotSoTrivial, int> move assignment [Ok<NotSoTrivial>]") {
         auto int_ptr             = std::make_shared<int>(100);
@@ -500,8 +502,8 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage]") {
         REQUIRE(storage_mv.get_tag() == detail::ResultTag::OK);
 
         REQUIRE(not_trivial_storage_mv.str == not_trivial.str);
-        REQUIRE(not_trivial_storage_mv.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage_mv.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage_mv.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage_mv.int_ptr == *not_trivial.int_ptr);
     }
     SECTION("ResultStorage<NotSoTrivial, int> move assignment [Err<int>]") {
         auto err_val = 100;
@@ -547,8 +549,8 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage]") {
         REQUIRE(storage_mv.get_tag() == detail::ResultTag::ERR);
 
         REQUIRE(not_trivial_storage_mv.str == not_trivial.str);
-        REQUIRE(not_trivial_storage_mv.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage_mv.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage_mv.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage_mv.int_ptr == *not_trivial.int_ptr);
     }
 }
 
@@ -693,8 +695,8 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage] void sp
 
         REQUIRE(storage.get_tag() == detail::ResultTag::ERR);
         REQUIRE(not_trivial_storage.str == not_trivial.str);
-        REQUIRE(not_trivial_storage.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage.int_ptr == *not_trivial.int_ptr);
     }
     SECTION("ResultStorage<void, NotSoTrivial> Err<NotSoTrivial> rvalue construction") {
         auto int_ptr             = std::make_shared<int>(100);
@@ -711,7 +713,7 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage] void sp
 
         REQUIRE(storage.get_tag() == detail::ResultTag::ERR);
         REQUIRE(not_trivial_storage.str == not_trivial.str);
-        REQUIRE(*not_trivial_storage.not_trivial == *int_ptr);
+        REQUIRE(*not_trivial_storage.int_ptr == *int_ptr);
     }
     SECTION("ResultStorage<void, NotSoTrivial> copy construction [Ok<void>]") {
         Ok<void> ok{};
@@ -739,16 +741,16 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage] void sp
 
         REQUIRE(storage.get_tag() == detail::ResultTag::ERR);
         REQUIRE(not_trivial_storage.str == not_trivial.str);
-        REQUIRE(not_trivial_storage.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage.int_ptr == *not_trivial.int_ptr);
 
         auto& not_trivial_storage_cpy = storage_cpy.get_error();
 
         REQUIRE(storage_cpy.get_tag() == detail::ResultTag::ERR);
 
         REQUIRE(not_trivial_storage_cpy.str == not_trivial.str);
-        REQUIRE(not_trivial_storage_cpy.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage_cpy.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage_cpy.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage_cpy.int_ptr == *not_trivial.int_ptr);
     }
     SECTION("ResultStorage<void, NotSoTrivial> copy assignment [Ok<void>]") {
         Ok<void> ok{};
@@ -776,16 +778,16 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage] void sp
 
         REQUIRE(storage.get_tag() == detail::ResultTag::ERR);
         REQUIRE(not_trivial_storage.str == not_trivial.str);
-        REQUIRE(not_trivial_storage.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage.int_ptr == *not_trivial.int_ptr);
 
         auto& not_trivial_storage_cpy = storage_cpy.get_error();
 
         REQUIRE(storage_cpy.get_tag() == detail::ResultTag::ERR);
 
         REQUIRE(not_trivial_storage_cpy.str == not_trivial.str);
-        REQUIRE(not_trivial_storage_cpy.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage_cpy.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage_cpy.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage_cpy.int_ptr == *not_trivial.int_ptr);
     }
     SECTION("ResultStorage<void, NotSoTrivial> move assignment [Ok<void>]") {
         Ok<void> ok{};
@@ -816,8 +818,69 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage] void sp
         REQUIRE(storage_mv.get_tag() == detail::ResultTag::ERR);
 
         REQUIRE(not_trivial_storage_mv.str == not_trivial.str);
-        REQUIRE(not_trivial_storage_mv.not_trivial == not_trivial.not_trivial);
-        REQUIRE(*not_trivial_storage_mv.not_trivial == *not_trivial.not_trivial);
+        REQUIRE(not_trivial_storage_mv.int_ptr == not_trivial.int_ptr);
+        REQUIRE(*not_trivial_storage_mv.int_ptr == *not_trivial.int_ptr);
+    }
+}
+
+TEST_CASE("ResultStorage Non-Trivial multiple assignment [result][ResultStorage] void specialization") {
+    SECTION("ResultStorage<NotSoTrivial, AnotherNotSoTrivial> multiple assignment") {
+        std::string s{"This is a very large string for testing purposes :)"};
+        auto int_ptr = std::make_shared<int>(10000);
+
+        NotSoTrivial nst{s, int_ptr};
+        detail::ResultStorage<NotSoTrivial, AnotherNotSoTrivial> initial_storage{Ok<NotSoTrivial>{nst}};
+
+        REQUIRE(initial_storage.get_tag() == detail::ResultTag::OK);
+
+        auto& initial_value = initial_storage.get_result();
+
+        REQUIRE(initial_value.str == s);
+        REQUIRE(initial_value.int_ptr == int_ptr);
+        REQUIRE(*initial_value.int_ptr == *int_ptr);
+        REQUIRE(int_ptr.use_count() == 3);
+
+        std::string a{"This is a very large string for testing purposes :), but is not the original"};
+        auto int_ptr_err = std::make_shared<int>(-1);
+
+        NotSoTrivial nst_err{a, int_ptr_err};
+
+        constexpr auto VEC_SIZE = 100;
+
+        std::vector<int> vec(VEC_SIZE);
+        std::unordered_map<int, std::string> kv_map;
+        std::generate(vec.begin(), vec.end(), [start = 0]() mutable { return start++; });
+        std::for_each(vec.begin(), vec.end(), [&kv_map](const int i) { kv_map[i] = std::to_string(i); });
+
+        AnotherNotSoTrivial anst{nst_err, kv_map, vec};
+        detail::ResultStorage<NotSoTrivial, AnotherNotSoTrivial> initial_storage_err{Err<AnotherNotSoTrivial>{anst}};
+
+        REQUIRE(initial_storage_err.get_tag() == detail::ResultTag::ERR);
+
+        auto& initial_err = initial_storage_err.get_error();
+
+        REQUIRE(initial_err.not_trivial.str == a);
+        REQUIRE(initial_err.not_trivial.int_ptr == int_ptr_err);
+        REQUIRE(*initial_err.not_trivial.int_ptr == *int_ptr_err);
+
+        // todo validate map and vec
+
+        REQUIRE(int_ptr_err.use_count() == 4);
+
+        initial_storage = initial_storage_err;
+
+        REQUIRE(initial_storage.get_tag() == detail::ResultTag::ERR);
+
+        REQUIRE(int_ptr.use_count() == 2);
+        REQUIRE(int_ptr_err.use_count() == 5);
+
+        auto& initial_storage_now_err = initial_storage.get_error();
+
+        REQUIRE(initial_storage_now_err.not_trivial.str == a);
+        REQUIRE(initial_storage_now_err.not_trivial.int_ptr == int_ptr_err);
+        REQUIRE(*initial_storage_now_err.not_trivial.int_ptr == *int_ptr_err);
+
+        // todo validate map and vec
     }
 }
 
