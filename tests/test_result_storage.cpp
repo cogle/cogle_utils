@@ -849,6 +849,7 @@ TEST_CASE("ResultStorage Non-Trivial multiple assignment [result][ResultStorage]
 
         std::vector<int> vec(VEC_SIZE);
         std::unordered_map<int, std::string> kv_map;
+
         std::generate(vec.begin(), vec.end(), [start = 0]() mutable { return start++; });
         std::for_each(vec.begin(), vec.end(), [&kv_map](const int i) { kv_map[i] = std::to_string(i); });
 
@@ -863,7 +864,16 @@ TEST_CASE("ResultStorage Non-Trivial multiple assignment [result][ResultStorage]
         REQUIRE(initial_err.not_trivial.int_ptr == int_ptr_err);
         REQUIRE(*initial_err.not_trivial.int_ptr == *int_ptr_err);
 
-        // todo validate map and vec
+        {
+            REQUIRE(initial_err.num_vec.size() == VEC_SIZE);
+            std::for_each(initial_err.num_vec.begin(), initial_err.num_vec.end(),
+                          [m = initial_err.num_map, ref_vec = vec, ref_map = kv_map, count = 0](const auto& i) mutable {
+                              REQUIRE(i == ref_vec[count]);
+                              REQUIRE_FALSE(m.count(i) == 0);
+                              REQUIRE(m[i] == ref_map[i]);
+                              count++;
+                          });
+        }
 
         REQUIRE(int_ptr_err.use_count() == 4);
 
@@ -880,7 +890,76 @@ TEST_CASE("ResultStorage Non-Trivial multiple assignment [result][ResultStorage]
         REQUIRE(initial_storage_now_err.not_trivial.int_ptr == int_ptr_err);
         REQUIRE(*initial_storage_now_err.not_trivial.int_ptr == *int_ptr_err);
 
-        // todo validate map and vec
+        {
+            auto& initial_err_chk = initial_storage_err.get_error();
+
+            REQUIRE(initial_err_chk.num_vec.size() == VEC_SIZE);
+            std::for_each(initial_err_chk.num_vec.begin(), initial_err_chk.num_vec.end(),
+                          [m = initial_err.num_map, ref_vec = vec, ref_map = kv_map, count = 0](const auto& i) mutable {
+                              REQUIRE(i == ref_vec[count]);
+                              REQUIRE_FALSE(m.count(i) == 0);
+                              REQUIRE(m[i] == ref_map[i]);
+                              count++;
+                          });
+
+            REQUIRE(initial_storage_now_err.num_vec.size() == VEC_SIZE);
+            std::for_each(initial_storage_now_err.num_vec.begin(), initial_storage_now_err.num_vec.end(),
+                          [m = initial_storage_now_err.num_map, ref_vec = vec, ref_map = kv_map,
+                           count = 0](const auto& i) mutable {
+                              REQUIRE(i == ref_vec[count]);
+                              REQUIRE_FALSE(m.count(i) == 0);
+                              REQUIRE(m[i] == ref_map[i]);
+                              count++;
+                          });
+        }
+
+        std::string s_mv{"This is a very large string for testing purposes :) Ok maybe very large is an exaggeration"};
+        auto int_ptr_mv = std::make_shared<int>(35);
+
+        NotSoTrivial nst_mv{s_mv, int_ptr_mv};
+        detail::ResultStorage<NotSoTrivial, AnotherNotSoTrivial> initial_storage_mv{Ok<NotSoTrivial>{nst_mv}};
+
+        REQUIRE(initial_storage_mv.get_tag() == detail::ResultTag::OK);
+
+        auto& initial_value_mv = initial_storage_mv.get_result();
+
+        REQUIRE(initial_value_mv.str == s_mv);
+        REQUIRE(initial_value_mv.int_ptr == int_ptr_mv);
+        REQUIRE(*initial_value_mv.int_ptr == *int_ptr_mv);
+        REQUIRE(int_ptr_mv.use_count() == 3);
+
+        initial_storage = std::move(initial_storage_mv);
+
+        REQUIRE(initial_storage_mv.get_tag() == detail::ResultTag::INVALID);
+
+        {
+            auto& initial_value_scope = initial_storage.get_result();
+
+            REQUIRE(initial_value_scope.str == s_mv);
+            REQUIRE(initial_value_scope.int_ptr == int_ptr_mv);
+            REQUIRE(*initial_value_scope.int_ptr == *int_ptr_mv);
+            REQUIRE(int_ptr_mv.use_count() == 3);
+        }
+
+        {
+            REQUIRE(initial_storage_err.get_tag() == detail::ResultTag::ERR);
+
+            auto& initial_err_scope = initial_storage_err.get_error();
+
+            REQUIRE(initial_err_scope.not_trivial.str == a);
+            REQUIRE(initial_err_scope.not_trivial.int_ptr == int_ptr_err);
+            REQUIRE(*initial_err_scope.not_trivial.int_ptr == *int_ptr_err);
+
+            REQUIRE(initial_err_scope.num_vec.size() == VEC_SIZE);
+            std::for_each(
+                initial_err_scope.num_vec.begin(), initial_err_scope.num_vec.end(),
+                [m = initial_err_scope.num_map, ref_vec = vec, ref_map = kv_map, count = 0](const auto& i) mutable {
+                    REQUIRE(i == ref_vec[count]);
+                    REQUIRE_FALSE(m.count(i) == 0);
+                    REQUIRE(m[i] == ref_map[i]);
+                    count++;
+                });
+        }
     }
 }
 

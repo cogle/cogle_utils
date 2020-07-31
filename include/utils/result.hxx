@@ -114,7 +114,7 @@ public:
 
 private:
     template <typename U>
-    void assign(U&& u) {
+    constexpr void assign(U&& u) {
         switch (u.tag_) {
             case ResultTag::OK:
                 new (&result_) R(std::forward<U>(u).get_result());
@@ -127,7 +127,7 @@ private:
         }
     }
 
-    void invalidate() { tag_ = ResultTag::INVALID; }
+    constexpr void invalidate() { tag_ = ResultTag::INVALID; }
 
     ResultTag tag_;
 
@@ -233,7 +233,7 @@ public:
 
 private:
     template <typename U>
-    void assign(U&& u) {
+    constexpr void assign(U&& u) {
         switch (u.tag_) {
             case ResultTag::OK:
                 new (&result_) R(std::forward<U>(u).get_result());
@@ -246,7 +246,7 @@ private:
         }
     }
 
-    void clear() noexcept {
+    constexpr void clear() noexcept {
         switch (tag_) {
             case ResultTag::OK:
                 result_.~R();
@@ -259,7 +259,7 @@ private:
         }
     }
 
-    void invalidate() noexcept {
+    constexpr void invalidate() noexcept {
         clear();
         tag_ = ResultTag::INVALID;
     }
@@ -345,7 +345,7 @@ public:
 
 private:
     template <typename U>
-    void assign(U&& u) {
+    constexpr void assign(U&& u) {
         switch (u.tag_) {
             case ResultTag::OK:
                 break;
@@ -357,7 +357,7 @@ private:
         }
     }
 
-    void clear() {
+    constexpr void clear() {
         switch (tag_) {
             case ResultTag::OK:
                 break;
@@ -369,7 +369,7 @@ private:
         }
     }
 
-    void invalidate() {
+    constexpr void invalidate() {
         clear();
         tag_ = ResultTag::INVALID;
     }
@@ -447,7 +447,7 @@ public:
 
 private:
     template <typename U>
-    void assign(U&& u) {
+    constexpr void assign(U&& u) {
         switch (u.tag_) {
             case ResultTag::OK:
                 break;
@@ -459,7 +459,7 @@ private:
         }
     }
 
-    void clear() {
+    constexpr void clear() {
         switch (tag_) {
             case ResultTag::OK:
                 break;
@@ -471,7 +471,7 @@ private:
         }
     }
 
-    void invalidate() {
+    constexpr void invalidate() {
         clear();
         tag_ = ResultTag::INVALID;
     }
