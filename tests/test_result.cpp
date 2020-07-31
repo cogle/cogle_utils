@@ -5,17 +5,19 @@ namespace {
 
 using namespace cogle::utils::result;
 
-TEST_CASE("Result Copy Construct Ok", "[result]") {
-    SECTION("Result<char, int> copy constrcut") {
+TEST_CASE("Result Construct Ok", "[result]") {
+    SECTION("Result<char, int> Ok lvalue constrcut") {
         constexpr char a = 'a';
+
         Ok<char> ok_char{a};
         Result<char, int> result{ok_char};
 
         REQUIRE(result.is_ok());
         REQUIRE_FALSE(result.is_err());
     }
-    SECTION("Result<char, int> move construct") {
+    SECTION("Result<char, int> Ok rvalue construct") {
         constexpr char a = 'a';
+
         Result<char, int> result{Ok<char>{a}};
 
         REQUIRE(result.is_ok());
@@ -23,51 +25,146 @@ TEST_CASE("Result Copy Construct Ok", "[result]") {
     }
     SECTION("Result<char, int> copy assignment") {
         constexpr char a = 'a';
-        Result<char, int> ok{Ok<char>{a}};
 
-        Result<char, int> result_cpy = ok;
+        Result<char, int> result_ok{Ok<char>{a}};
+        Result<char, int> result_cpy = result_ok;
 
         REQUIRE(result_cpy.is_ok());
         REQUIRE_FALSE(result_cpy.is_err());
+
+        REQUIRE(result_ok.is_ok());
+        REQUIRE_FALSE(result_ok.is_err());
     }
     SECTION("Result<char, int> move assignment") {
         constexpr char a = 'a';
-        Result<char, int> result{Ok<char>{a}};
 
+        Result<char, int> result{Ok<char>{a}};
         Result<char, int> result_cpy = std::move(result);
 
         REQUIRE(result_cpy.is_ok());
         REQUIRE_FALSE(result_cpy.is_err());
+
+        REQUIRE_FALSE(result.is_ok());
+        REQUIRE_FALSE(result.is_err());
     }
 
-    SECTION("Result<void, int> copy constrcut") {
+    SECTION("Result<void, int> Ok lvalue constrcut") {
         Ok<void> ok_void{};
         Result<void, int> result{ok_void};
 
         REQUIRE(result.is_ok());
         REQUIRE_FALSE(result.is_err());
     }
-    SECTION("Result<void, int> move construct") {
+    SECTION("Result<void, int> Ok rvalue construct") {
         Result<void, int> result{Ok<void>{}};
 
         REQUIRE(result.is_ok());
         REQUIRE_FALSE(result.is_err());
     }
     SECTION("Result<void, int> copy assignment") {
-        Result<void, int> ok{Ok<void>{}};
-
-        Result<void, int> result_cpy = ok;
+        Result<void, int> result{Ok<void>{}};
+        Result<void, int> result_cpy = result;
 
         REQUIRE(result_cpy.is_ok());
         REQUIRE_FALSE(result_cpy.is_err());
+
+        REQUIRE(result.is_ok());
+        REQUIRE_FALSE(result.is_err());
     }
     SECTION("Result<void, int> move assignment") {
         Result<void, int> result{Ok<void>{}};
-
         Result<void, int> result_cpy = std::move(result);
 
         REQUIRE(result_cpy.is_ok());
         REQUIRE_FALSE(result_cpy.is_err());
+
+        REQUIRE_FALSE(result.is_ok());
+        REQUIRE_FALSE(result.is_err());
+    }
+}
+
+TEST_CASE("Result Construct Err", "[result]") {
+    SECTION("Result<char, int> Err lvalue constrcut") {
+        constexpr int a = 1;
+
+        Err<int> err_int{a};
+        Result<char, int> result{err_int};
+
+        REQUIRE_FALSE(result.is_ok());
+        REQUIRE(result.is_err());
+    }
+    SECTION("Result<char, int> Err rvalue construct") {
+        constexpr int a = 1;
+
+        Result<char, int> result{Err<int>{a}};
+
+        REQUIRE_FALSE(result.is_ok());
+        REQUIRE(result.is_err());
+    }
+    SECTION("Result<char, int> copy assignment") {
+        constexpr int a = 1;
+
+        Result<char, int> result_err{Err<int>{a}};
+        Result<char, int> result_cpy = result_err;
+
+        REQUIRE_FALSE(result_cpy.is_ok());
+        REQUIRE(result_cpy.is_err());
+
+        REQUIRE_FALSE(result_err.is_ok());
+        REQUIRE(result_err.is_err());
+    }
+    SECTION("Result<char, int> move assignment") {
+        constexpr int a = 1;
+
+        Result<char, int> result{Err<int>{a}};
+        Result<char, int> result_cpy = std::move(result);
+
+        REQUIRE_FALSE(result_cpy.is_ok());
+        REQUIRE(result_cpy.is_err());
+
+        REQUIRE_FALSE(result.is_ok());
+        REQUIRE_FALSE(result.is_err());
+    }
+    SECTION("Result<void, int> Err lvalue constrcut") {
+        constexpr int a = 1;
+
+        Err<int> err_int{a};
+        Result<void, int> result{err_int};
+
+        REQUIRE_FALSE(result.is_ok());
+        REQUIRE(result.is_err());
+    }
+    SECTION("Result<void, int> Err rvalue construct") {
+        constexpr int a = 1;
+
+        Result<void, int> result{Err<int>{a}};
+
+        REQUIRE_FALSE(result.is_ok());
+        REQUIRE(result.is_err());
+    }
+    SECTION("Result<void, int> copy assignment") {
+        constexpr int a = 1;
+
+        Result<void, int> result{Err<int>{a}};
+        Result<void, int> result_cpy = result;
+
+        REQUIRE_FALSE(result_cpy.is_ok());
+        REQUIRE(result_cpy.is_err());
+
+        REQUIRE_FALSE(result.is_ok());
+        REQUIRE(result.is_err());
+    }
+    SECTION("Result<void, int> move assignment") {
+        constexpr int a = 1;
+
+        Result<void, int> result{Err<int>{a}};
+        Result<void, int> result_cpy = std::move(result);
+
+        REQUIRE_FALSE(result_cpy.is_ok());
+        REQUIRE(result_cpy.is_err());
+
+        REQUIRE_FALSE(result.is_ok());
+        REQUIRE_FALSE(result.is_err());
     }
 }
 
