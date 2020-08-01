@@ -330,6 +330,24 @@ TEST_CASE("Result match(...)", "[result]") {
             REQUIRE(ret == EXPECTED);
         }
     }
+    SECTION("Result<void, int>{Ok} match -> int") {
+            Result<void, int> result{Ok<void>{}};
+
+            REQUIRE(result.is_ok());
+
+            SECTION("Result<void, int> match(char) -> int valid") {
+                constexpr auto EXPECTED     = 100;
+                constexpr auto NOT_EXPECTED = -100;
+
+                auto ret = result.match(
+                    [ret = EXPECTED]() {
+                        return ret;
+                    },
+                    [ret = NOT_EXPECTED](int) { return ret; });
+
+                REQUIRE(ret == EXPECTED);
+            }
+        }
 }
 
 }  // namespace

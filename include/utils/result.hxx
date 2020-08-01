@@ -799,7 +799,7 @@ public:
         static_assert(traits::is_invocable_v<F&&, X&&>);
         static_assert(std::is_same_v<traits::first_argument_t<F>, X>);
 
-        return map_(storage_, func);
+        return map_(storage_, std::forward<F>(func));
     }
 
     template <typename F, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>
@@ -807,7 +807,7 @@ public:
         static_assert(traits::is_invocable_v<F&&, X&&>);
         static_assert(std::is_same_v<traits::first_argument_t<F>, X>);
 
-        return map_(std::move(storage_), func);
+        return map_(std::move(storage_), std::forward<F>(func));
     }
 
     template <typename F, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>
@@ -815,7 +815,7 @@ public:
         static_assert(traits::is_invocable_v<F&&, X&&>);
         static_assert(std::is_same_v<traits::first_argument_t<F>, X>);
 
-        return map_(storage_, func);
+        return map_(storage_, std::forward<F>(func));
     }
 
     template <typename F, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>
@@ -823,7 +823,7 @@ public:
         static_assert(traits::is_invocable_v<F&&, X&&>);
         static_assert(std::is_same_v<traits::first_argument_t<F>, X>);
 
-        return map_(std::move(storage_), func);
+        return map_(std::move(storage_), std::forward<F>(func));
     }
 
     // void Result specialization
@@ -831,28 +831,28 @@ public:
     [[nodiscard]] constexpr auto map(F&& func) & -> Result<traits::invoke_result_t<F&&>, E> {
         static_assert(traits::is_invocable_v<F&&>);
 
-        return map_(storage_, func);
+        return map_(storage_, std::forward<F>(func));
     }
 
     template <typename F, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
     [[nodiscard]] constexpr auto map(F&& func) && -> Result<traits::invoke_result_t<F&&>, E> {
         static_assert(traits::is_invocable_v<F&&>);
 
-        return map_(std::move(storage_), func);
+        return map_(std::move(storage_), std::forward<F>(func));
     }
 
     template <typename F, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
     [[nodiscard]] constexpr auto map(F&& func) const& -> Result<traits::invoke_result_t<F&&>, E> {
         static_assert(traits::is_invocable_v<F&&>);
 
-        return map_(storage_, func);
+        return map_(storage_, std::forward<F>(func));
     }
 
     template <typename F, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
     [[nodiscard]] constexpr auto map(F&& func) const&& -> Result<traits::invoke_result_t<F&&>, E> {
         static_assert(traits::is_invocable_v<F&&>);
 
-        return map_(std::move(storage_), func);
+        return map_(std::move(storage_), std::forward<F>(func));
     }
 
     // match<FuncOk, FuncErr>(FuncR&& ok_func, FuncE&& err_func) -> convertable(ok_func(R), err_func(E))
@@ -870,7 +870,7 @@ public:
         static_assert(std::is_same_v<traits::first_argument_t<ErrF>, E>);
         static_assert(std::is_convertible_v<traits::invoke_result_t<ErrF&&, E&&>, traits::invoke_result_t<OkF&&, X&&>>);
 
-        return match_(storage_, ok_func, err_func);
+        return match_(storage_, std::forward<OkF>(ok_func), std::forward<ErrF>(err_func));
     }
 
     template <typename OkF, typename ErrF, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>
@@ -881,52 +881,71 @@ public:
         static_assert(std::is_same_v<traits::first_argument_t<ErrF>, E>);
         static_assert(std::is_convertible_v<traits::invoke_result_t<ErrF&&, E&&>, traits::invoke_result_t<OkF&&, X&&>>);
 
-        return match_(std::move(storage_), ok_func, err_func);
+        return match_(std::move(storage_), std::forward<OkF>(ok_func), std::forward<ErrF>(err_func));
     }
 
     template <typename OkF, typename ErrF, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>
-    [[nodiscard]] constexpr auto match(OkF&& ok_func, ErrF&& err_func) & -> traits::invoke_result_t<OkF&&, X&&> {
+    [[nodiscard]] constexpr auto match(OkF&& ok_func, ErrF&& err_func) const& -> traits::invoke_result_t<OkF&&, X&&> {
         static_assert(traits::is_invocable_v<OkF&&, X&&>);
         static_assert(traits::is_invocable_v<ErrF&&, E&&>);
         static_assert(std::is_same_v<traits::first_argument_t<OkF>, X>);
         static_assert(std::is_same_v<traits::first_argument_t<ErrF>, E>);
         static_assert(std::is_convertible_v<traits::invoke_result_t<ErrF&&, E&&>, traits::invoke_result_t<OkF&&, X&&>>);
 
-        return match_(storage_, ok_func, err_func);
+        return match_(storage_, std::forward<OkF>(ok_func), std::forward<ErrF>(err_func));
     }
 
     template <typename OkF, typename ErrF, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>
-    [[nodiscard]] constexpr auto match(OkF&& ok_func, ErrF&& err_func) & -> traits::invoke_result_t<OkF&&, X&&> {
+    [[nodiscard]] constexpr auto match(OkF&& ok_func, ErrF&& err_func) const&& -> traits::invoke_result_t<OkF&&, X&&> {
         static_assert(traits::is_invocable_v<OkF&&, X&&>);
         static_assert(traits::is_invocable_v<ErrF&&, E&&>);
         static_assert(std::is_same_v<traits::first_argument_t<OkF>, X>);
         static_assert(std::is_same_v<traits::first_argument_t<ErrF>, E>);
         static_assert(std::is_convertible_v<traits::invoke_result_t<ErrF&&, E&&>, traits::invoke_result_t<OkF&&, X&&>>);
 
-        return match_(storage_, ok_func, err_func);
+        return match_(std::move(storage_), std::forward<OkF>(ok_func), std::forward<ErrF>(err_func));
     }
 
+    // void Result specialization
+    template <typename OkF, typename ErrF, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto match(OkF&& ok_func, ErrF&& err_func) & -> traits::invoke_result_t<OkF&&> {
+        static_assert(traits::is_invocable_v<OkF&&>);
+        static_assert(traits::is_invocable_v<ErrF&&, E&&>);
+        static_assert(std::is_same_v<traits::first_argument_t<ErrF>, E>);
+        static_assert(std::is_convertible_v<traits::invoke_result_t<ErrF&&, E&&>, traits::invoke_result_t<OkF&&>>);
 
-
-    /*
-
-
-    template <typename F, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>
-    [[nodiscard]] constexpr auto map(F&& func) const& -> Result<traits::invoke_result_t<F&&, X&&>, E> {
-        static_assert(traits::is_invocable_v<F&&, X&&>);
-        static_assert(std::is_same_v<traits::first_argument_t<F>, X>);
-
-        return map_(storage_, func);
+        return match_(storage_, std::forward<OkF>(ok_func), std::forward<ErrF>(err_func));
     }
 
-    template <typename F, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>
-    [[nodiscard]] constexpr auto map(F&& func) const&& -> Result<traits::invoke_result_t<F&&, X&&>, E> {
-        static_assert(traits::is_invocable_v<F&&, X&&>);
-        static_assert(std::is_same_v<traits::first_argument_t<F>, X>);
+    template <typename OkF, typename ErrF, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto match(OkF&& ok_func, ErrF&& err_func) && -> traits::invoke_result_t<OkF&&> {
+        static_assert(traits::is_invocable_v<OkF&&>);
+        static_assert(traits::is_invocable_v<ErrF&&, E&&>);
+        static_assert(std::is_same_v<traits::first_argument_t<ErrF>, E>);
+        static_assert(std::is_convertible_v<traits::invoke_result_t<ErrF&&, E&&>, traits::invoke_result_t<OkF&&>>);
 
-        return map_(std::move(storage_), func);
+        return match_(std::move(storage_), std::forward<OkF>(ok_func), std::forward<ErrF>(err_func));
     }
-    */
+
+    template <typename OkF, typename ErrF, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto match(OkF&& ok_func, ErrF&& err_func) const& -> traits::invoke_result_t<OkF&&> {
+        static_assert(traits::is_invocable_v<OkF&&>);
+        static_assert(traits::is_invocable_v<ErrF&&, E&&>);
+        static_assert(std::is_same_v<traits::first_argument_t<ErrF>, E>);
+        static_assert(std::is_convertible_v<traits::invoke_result_t<ErrF&&, E&&>, traits::invoke_result_t<OkF&&>>);
+
+        return match_(storage_, std::forward<OkF>(ok_func), std::forward<ErrF>(err_func));
+    }
+
+    template <typename OkF, typename ErrF, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto match(OkF&& ok_func, ErrF&& err_func) const&& -> traits::invoke_result_t<OkF&&> {
+        static_assert(traits::is_invocable_v<OkF&&>);
+        static_assert(traits::is_invocable_v<ErrF&&, E&&>);
+        static_assert(std::is_same_v<traits::first_argument_t<ErrF>, E>);
+        static_assert(std::is_convertible_v<traits::invoke_result_t<ErrF&&, E&&>, traits::invoke_result_t<OkF&&>>);
+
+        return match_(std::move(storage_), std::forward<OkF>(ok_func), std::forward<ErrF>(err_func));
+    }
 
 private:
     // Non-void and_then_
@@ -981,6 +1000,19 @@ private:
             return err_func(std::forward<S>(s).get_error());
         }
     }
+
+    // void specialization match_
+    template <typename S, typename OkF, typename ErrF, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
+    [[nodiscard]] constexpr auto match_(S&& s, OkF&& ok_func,
+                                        ErrF&& err_func) & -> traits::invoke_result_t<OkF&&> {
+        if (is_ok()) {
+            return ok_func();
+        } else {
+            return err_func(std::forward<S>(s).get_error());
+        }
+    }
+
+
 
     Storage storage_;
 };
