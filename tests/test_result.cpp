@@ -168,7 +168,7 @@ TEST_CASE("Result Construct Err", "[result]") {
     }
 }
 
-TEST_CASE("Result and_then()", "[result]") {
+TEST_CASE("Result and_then(...)", "[result]") {
     SECTION("Result<char, int>{Ok} -> and_then(char)[Result<string, int>]") {
         constexpr char a = 'a';
         Ok<char> ok_char{a};
@@ -276,7 +276,7 @@ TEST_CASE("Result and_then()", "[result]") {
     }
 }
 
-TEST_CASE("Result map()", "[result]") {
+TEST_CASE("Result map(...)", "[result]") {
     SECTION("Result<char, int>{Ok} -> map(char)[string]") {
         constexpr char a = 'a';
         Ok<char> ok_char{a};
@@ -304,6 +304,30 @@ TEST_CASE("Result map()", "[result]") {
 
             REQUIRE(string_result.is_ok());
             REQUIRE(string_result.result() == test_str);
+        }
+    }
+}
+
+TEST_CASE("Result match(...)", "[result]") {
+    SECTION("Result<char, int>{Ok} match -> int") {
+        constexpr char a = 'a';
+        Ok<char> ok_char{a};
+        Result<char, int> result{ok_char};
+
+        REQUIRE(result.is_ok());
+
+        SECTION("Result<char, int> match(char) -> int valid") {
+            constexpr auto EXPECTED     = 100;
+            constexpr auto NOT_EXPECTED = -100;
+
+            auto ret = result.match(
+                [ret = EXPECTED](char c) {
+                    std::cout << "In good match with " << c << std::endl;
+                    return ret;
+                },
+                [ret = NOT_EXPECTED](int) { return ret; });
+
+            REQUIRE(ret == EXPECTED);
         }
     }
 }
