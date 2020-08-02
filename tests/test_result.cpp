@@ -1,9 +1,26 @@
+#include <memory>
+#include <string>
+#include <vector>
+
 #include "catch2/catch.hpp"
 #include "utils/result.hxx"
 
 namespace {
 
 using namespace cogle::utils::result;
+
+struct ResultStruct {
+    ResultStruct(int a, std::string s, std::vector<std::shared_ptr<int>> v) : num(a), str(s), ptr_vec(v) {}
+
+    int num;
+    std::string str;
+    std::vector<std::shared_ptr<int>> ptr_vec;
+};
+
+struct ErrorStruct {
+    std::shared_ptr<int> err;
+    std::string error_msg;
+};
 
 TEST_CASE("Result Construct Ok", "[result]") {
     SECTION("Result<char, int> Ok lvalue constrcut") {
@@ -168,7 +185,7 @@ TEST_CASE("Result Construct Err", "[result]") {
     }
 }
 
-TEST_CASE("Result and_then()", "[result]") {
+TEST_CASE("Result and_then(...)", "[result]") {
     SECTION("Result<char, int>{Ok} -> and_then(char)[Result<string, int>]") {
         constexpr char a = 'a';
         Ok<char> ok_char{a};
@@ -276,7 +293,7 @@ TEST_CASE("Result and_then()", "[result]") {
     }
 }
 
-TEST_CASE("Result map()", "[result]") {
+TEST_CASE("Result map(...)", "[result]") {
     SECTION("Result<char, int>{Ok} -> map(char)[string]") {
         constexpr char a = 'a';
         Ok<char> ok_char{a};
@@ -305,6 +322,105 @@ TEST_CASE("Result map()", "[result]") {
             REQUIRE(string_result.is_ok());
             REQUIRE(string_result.result() == test_str);
         }
+    }
+}
+
+TEST_CASE("Result match(...)", "[result]") {
+    SECTION("Result<char, int>{Ok} match -> int") {
+        constexpr char a = 'a';
+        Ok<char> ok_char{a};
+        Result<char, int> result{ok_char};
+
+        REQUIRE(result.is_ok());
+
+        SECTION("Result<char, int> match(char) -> int valid") {
+            constexpr auto EXPECTED     = 100;
+            constexpr auto NOT_EXPECTED = -100;
+
+            auto ret = result.match(
+                [ret = EXPECTED](char c) {
+                    std::cout << "In good match with " << c << std::endl;
+                    return ret;
+                },
+                [ret = NOT_EXPECTED](int) { return ret; });
+
+            REQUIRE(ret == EXPECTED);
+        }
+    }
+    SECTION("Result<void, int>{Ok} match -> int") {
+        Result<void, int> result{Ok<void>{}};
+
+        REQUIRE(result.is_ok());
+
+        SECTION("Result<void, int> match(char) -> int valid") {
+            constexpr auto EXPECTED     = 100;
+            constexpr auto NOT_EXPECTED = -100;
+
+            auto ret = result.match([ret = EXPECTED]() { return ret; }, [ret = NOT_EXPECTED](int) { return ret; });
+
+            REQUIRE(ret == EXPECTED);
+        }
+    }
+    SECTION("Result<char, int>{Err} match -> int") {
+        constexpr int a = -1;
+        Err<int> ok_char{a};
+        Result<char, int> result{ok_char};
+
+        REQUIRE(result.is_err());
+
+        SECTION("Result<char, int> match(char) -> int") {
+            constexpr auto NOT_EXPECTED = 100;
+            constexpr auto EXPECTED     = -100;
+
+            auto ret = result.match(
+                [ret = NOT_EXPECTED](char c) {
+                    std::cout << "In good match with " << c << std::endl;
+                    return ret;
+                },
+                [ret = EXPECTED](int) { return ret; });
+
+            REQUIRE(ret == EXPECTED);
+        }
+    }
+    SECTION("Result<void, int>{Err} match -> int") {
+        constexpr auto err = -1;
+        Result<void, int> result{Err<int>{err}};
+
+        REQUIRE(result.is_err());
+
+        SECTION("Result<void, int> match(void) -> int ") {
+            constexpr auto NOT_EXPECTED = 100;
+            constexpr auto EXPECTED     = -100;
+
+            auto ret = result.match([ret = NOT_EXPECTED]() { return ret; }, [ret = EXPECTED](int) { return ret; });
+
+            REQUIRE(ret == EXPECTED);
+        }
+    }
+}
+
+TEST_CASE("Result Non-POD Types [result]") {
+    // struct ResultStruct {
+    //    int num;
+    //    std::string str;
+    //    std::vector<std::shared_ptr<int>> ptr_vec;
+    //};
+    //
+    // struct ErrorStruct {
+    //    std::shared_ptr<int> err;
+    //    std::string error_msg;
+    //};
+    SECTION("Result<std::unique_ptr<ResultStruct>, ErrorStruct>>") {
+        auto result_ptr = std::make_unique<ResultStruct>(
+            10, "This is a good string",
+            std::vector<std::shared_ptr<int>>{std::make_shared<int>(0), std::make_shared<int>(1),
+                                              std::make_shared<int>(2), std::make_shared<int>(3),
+                                              std::make_shared<int>(4), std::make_shared<int>(5)});
+        Ok<std::unique_ptr<ResultStruct>> ok{std::move(result_ptr)};
+
+        Result<std::unique_ptr<ResultStruct>, ErrorStruct> result{std::move(ok)};
+
+        REQUIRE(result.is_ok());
     }
 }
 

@@ -424,7 +424,7 @@ def run_make_clean(env_dict: Dict[str, str]):
 
 def run_tests():
     format_build_str("Running Unit Tests", fill_char="-")
-    subprocess_check_call(["ctest", "--verbose"])
+    subprocess_check_call(["ctest", "--verbose", "--stop-on-failure"])
 
 
 def setup_build_args(args_dict, project_dir: str) -> BuildInfo:
