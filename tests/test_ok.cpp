@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "catch2/catch.hpp"
 #include "utils/result.hxx"
 
@@ -128,6 +130,16 @@ TEST_CASE("Ok Struct Equality and Inequality Primitive Types", "[result][ok]") {
             REQUIRE_FALSE(ok_char_z == err_char_z);
             REQUIRE((ok_char_z != err_char_z));
         }
+    }
+}
+
+TEST_CASE("Ok NonPod Types", "[result][ok]") {
+    SECTION("std::unique_ptr<...> Test") {
+        constexpr auto ptr_value = 100;
+        auto ptr                 = std::make_unique<int>(ptr_value);
+        Ok<std::unique_ptr<int>> ok{std::move(ptr)};
+
+        REQUIRE(*ok.get_result() == ptr_value);
     }
 }
 

@@ -40,12 +40,12 @@ class ResultStorage {
 public:
     explicit constexpr ResultStorage(const Ok<R>& ok) noexcept(std::is_nothrow_copy_constructible_v<R>)
         : tag_(ResultTag::OK), result_(ok.get_result()) {}
-    explicit constexpr ResultStorage(const Ok<R>&& ok) noexcept(std::is_nothrow_move_constructible_v<R>)
+    explicit constexpr ResultStorage(Ok<R>&& ok) noexcept(std::is_nothrow_move_constructible_v<R>)
         : tag_(ResultTag::OK), result_(std::move(ok.get_result())) {}
 
     explicit constexpr ResultStorage(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible_v<E>)
         : tag_(ResultTag::ERR), error_(err.get_error()) {}
-    explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible_v<E>)
+    explicit constexpr ResultStorage(Err<E>&& err) noexcept(std::is_nothrow_move_constructible_v<E>)
         : tag_(ResultTag::ERR), error_(std::move(err.get_error())) {}
 
     constexpr ResultStorage(ResultStorage const&) = default;
@@ -147,12 +147,12 @@ class ResultStorage<R, E,
 public:
     explicit constexpr ResultStorage(const Ok<R>& ok) noexcept(std::is_nothrow_copy_constructible_v<R>)
         : tag_(ResultTag::OK), result_(ok.get_result()) {}
-    explicit constexpr ResultStorage(const Ok<R>&& ok) noexcept(std::is_nothrow_move_constructible_v<R>)
+    explicit constexpr ResultStorage(Ok<R>&& ok) noexcept(std::is_nothrow_move_constructible_v<R>)
         : tag_(ResultTag::OK), result_(std::move(ok.get_result())) {}
 
     explicit constexpr ResultStorage(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible_v<E>)
         : tag_(ResultTag::ERR), error_(err.get_error()) {}
-    explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible_v<E>)
+    explicit constexpr ResultStorage(Err<E>&& err) noexcept(std::is_nothrow_move_constructible_v<E>)
         : tag_(ResultTag::ERR), error_(std::move(err.get_error())) {}
 
     constexpr ResultStorage(ResultStorage const& o) noexcept(
@@ -282,13 +282,13 @@ class ResultStorage<void, E, std::enable_if_t<std::is_standard_layout_v<E> && st
 public:
     explicit constexpr ResultStorage(const Ok<void>&) noexcept : tag_(ResultTag::OK) {}
 
-    explicit constexpr ResultStorage(const Ok<void>&&) noexcept : tag_(ResultTag::OK) {}
+    explicit constexpr ResultStorage(Ok<void>&&) noexcept : tag_(ResultTag::OK) {}
 
     explicit constexpr ResultStorage(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible_v<E>)
         : tag_(ResultTag::ERR) {
         new (&error_) E(err.get_error());
     }
-    explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible_v<E>)
+    explicit constexpr ResultStorage(Err<E>&& err) noexcept(std::is_nothrow_move_constructible_v<E>)
         : tag_(ResultTag::ERR) {
         new (&error_) E(std::move(err.get_error()));
     }
@@ -388,11 +388,11 @@ class ResultStorage<void, E, std::enable_if_t<!std::is_standard_layout_v<E> || !
 public:
     explicit constexpr ResultStorage(const Ok<void>&) noexcept : tag_(ResultTag::OK) {}
 
-    explicit constexpr ResultStorage(const Ok<void>&&) noexcept : tag_(ResultTag::OK) {}
+    explicit constexpr ResultStorage(Ok<void>&&) noexcept : tag_(ResultTag::OK) {}
 
     explicit constexpr ResultStorage(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible_v<E>)
         : tag_(ResultTag::ERR), error_(err.get_error()) {}
-    explicit constexpr ResultStorage(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible_v<E>)
+    explicit constexpr ResultStorage(Err<E>&& err) noexcept(std::is_nothrow_move_constructible_v<E>)
         : tag_(ResultTag::ERR), error_(std::move(err.get_error())) {}
 
     constexpr ResultStorage(ResultStorage const& o) noexcept(std::is_nothrow_copy_constructible_v<E>) : tag_(o.tag_) {
@@ -631,13 +631,13 @@ public:
     [[nodiscard]] constexpr Result(const Ok<R>& ok) noexcept(std::is_nothrow_copy_constructible<Storage>())
         : storage_(ok) {}
 
-    [[nodiscard]] constexpr Result(const Ok<R>&& ok) noexcept(std::is_nothrow_move_constructible<Storage>())
+    [[nodiscard]] constexpr Result(Ok<R>&& ok) noexcept(std::is_nothrow_move_constructible<Storage>())
         : storage_(std::move(ok)) {}
 
     [[nodiscard]] constexpr Result(const Err<E>& err) noexcept(std::is_nothrow_copy_constructible<Storage>())
         : storage_(err) {}
 
-    [[nodiscard]] constexpr Result(const Err<E>&& err) noexcept(std::is_nothrow_move_constructible<Storage>())
+    [[nodiscard]] constexpr Result(Err<E>&& err) noexcept(std::is_nothrow_move_constructible<Storage>())
         : storage_(std::move(err)) {}
 
     constexpr Result(const Result& o) noexcept(std::is_nothrow_copy_constructible<Storage>()) : storage_(o.storage_) {}
@@ -1003,16 +1003,13 @@ private:
 
     // void specialization match_
     template <typename S, typename OkF, typename ErrF, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
-    [[nodiscard]] constexpr auto match_(S&& s, OkF&& ok_func,
-                                        ErrF&& err_func) & -> traits::invoke_result_t<OkF&&> {
+    [[nodiscard]] constexpr auto match_(S&& s, OkF&& ok_func, ErrF&& err_func) & -> traits::invoke_result_t<OkF&&> {
         if (is_ok()) {
             return ok_func();
         } else {
             return err_func(std::forward<S>(s).get_error());
         }
     }
-
-
 
     Storage storage_;
 };
