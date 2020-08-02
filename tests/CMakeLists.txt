@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13.4)
-project(cogle_utils_unit_Tests)
+project(cogle_utils_unit_tests)
 
 message(STATUS "Building Unit Tests")
 
@@ -29,4 +29,4 @@ target_link_libraries(
     ${CUSTOM_LINKER_FLAGS}
 )
 
-add_test(NAME UtilsUnitTests COMMAND ${TEST_TARGET} -s)
+add_test(NAME UtilsUnitTests COMMAND ${TEST_TARGET} -s -a)
