@@ -11,15 +11,17 @@ set(CUSTOM_LINKER_FLAGS "")
 #                                 #
 ###################################
 
-option(WITH_TSAN     "Build with TSAN" OFF) 
-option(WITH_ASAN     "Build with ASAN" OFF)
-option(WITH_GCOV     "Build with GCOV Code Coverage" OFF)
-option(WITH_TESTS    "Build with Unit Tests" OFF)
+option(WITH_TSAN       "Build with TSAN" OFF) 
+option(WITH_ASAN       "Build with ASAN" OFF)
+option(WITH_GCOV       "Build with GCOV Code Coverage" OFF)
+option(WITH_TESTS      "Build with Unit Tests" OFF)
+option(WITH_EXAMPLES   "Build with Examples" OFF)
 
 message(STATUS "Build WITH_TSAN: " ${WITH_TSAN})
 message(STATUS "BUILD WITH_ASAN: " ${WITH_ASAN})
 message(STATUS "BUILD WITH_GCOV: " ${WITH_GCOV})
 message(STATUS "BUILD WITH_TESTS: " ${WITH_TESTS})
+message(STATUS "BUILD WITH_EXAMPLES: " ${WITH_EXAMPLES})
 
 if(WITH_ASAN)
     set(CUSTOM_COMPILER_FLAGS ${CUSTOM_COMPILER_FLAGS} -fsanitize=address)
@@ -40,6 +42,10 @@ add_library(${PROJECT_NAME}::lib ALIAS ${LIB_TARGET})
 target_include_directories(${LIB_TARGET} INTERFACE
     include/
 )
+
+if(WITH_EXAMPLES)
+    add_subdirectory(examples)
+endif(WITH_EXAMPLES)
 
 if (WITH_TESTS)
     enable_testing()

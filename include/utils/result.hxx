@@ -657,9 +657,11 @@ public:
         return *this;
     }
 
-    [[nodiscard]] constexpr bool is_ok() { return storage_.tag_ == TagEnum::OK; }
+    explicit constexpr operator bool() const { return is_ok(); }
 
-    [[nodiscard]] constexpr bool is_err() { return storage_.tag_ == TagEnum::ERR; }
+    [[nodiscard]] constexpr bool is_ok() const { return storage_.tag_ == TagEnum::OK; }
+
+    [[nodiscard]] constexpr bool is_err() const { return storage_.tag_ == TagEnum::ERR; }
 
     template <typename U = E>
     [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, U&> error() & noexcept {

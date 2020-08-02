@@ -22,6 +22,7 @@ CLEAN_FLAG_KEY = "clean"
 COMPILER_FLAG_KEY = "compiler"
 WIPE_FLAG_KEY = "wipe"
 GCOV_FLAG_KEY = "gcov"
+EXAMPLES_FLAG_KEY = "examples"
 
 # Key Pairs
 # TODO Try to coalesce into a single flag
@@ -40,7 +41,7 @@ BUILD_DIR_CMAKE_FLAG_KEY = "cmake_build_dir_flag"
 # TODO MAKE SOURCE DIR CONFIGURABLE
 
 CMAKE_BUILD_ARGS_KEYS_SET = {CMAKE_BUILD_FLAG_KEY, TESTS_FLAG_KEY,
-                             TSAN_FLAG_KEY, ASAN_FLAG_KEY, BUILD_DIR_CMAKE_FLAG_KEY, GCOV_FLAG_KEY}
+                             TSAN_FLAG_KEY, ASAN_FLAG_KEY, BUILD_DIR_CMAKE_FLAG_KEY, GCOV_FLAG_KEY, EXAMPLES_FLAG_KEY}
 BUILD_ENV_KEYS_SET = {COMPILER_FLAG_KEY}
 
 REQUIRED_KEYS = {BUILD_FLAG_KEY, BUILD_DIR_FLAG_KEY, COMPILER_FLAG_KEY}
@@ -51,6 +52,7 @@ ASAN_BUILD = "-DWITH_ASAN=true"
 GCOV_BUILD = "-DWITH_GCOV=true"
 
 UNIT_TESTS_BUILD = "-DWITH_TESTS=true"
+EXAMPLES_BUILD = "-DWITH_EXAMPLES=true"
 
 EXIT_CODE_FAIL = -1
 
@@ -165,7 +167,6 @@ class BuildInfo:
     def run_tests(self) -> bool:
         return TESTS_FLAG_KEY in self.cmake_flags
 
-
 def check_default_args(args_dict):
     """Ensure that the passed in args from the user have the proper
     default arguments set.
@@ -227,6 +228,8 @@ def parse_args():
         "--release", help="Build using release version", action="store_true")
     parser.add_argument(
         "--tests", help="Build with unit tests", action="store_true")
+    parser.add_argument(
+            "--examples", help="Build with examples", action="store_true")
     parser.add_argument("--clean", help="Build clean", action="store_true")
     parser.add_argument(
         "--wipe", help="Wipes the build directory by removing it", action="store_true")
@@ -299,6 +302,10 @@ def parse_args():
     # unit tests
     if args.tests:
         ret[TESTS_FLAG_KEY] = UNIT_TESTS_BUILD
+
+    # examples
+    if args.examples:
+        ret[EXAMPLES_FLAG_KEY] = EXAMPLES_BUILD
 
     # build dir
     if args.dir:
