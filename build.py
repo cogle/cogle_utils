@@ -11,7 +11,7 @@ import shutil
 import multiprocessing
 
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -32,11 +32,10 @@ CMAKE_BUILD_FLAG_KEY = "cmake_build_flag"
 BUILD_DIR_FLAG_KEY = "cmake_build_dir"
 BUILD_DIR_CMAKE_FLAG_KEY = "cmake_build_dir_flag"
 
+# TODO SUPPORT ADDITION CMAKE ARGS PASSED IN BY USER
 # TODO PUT EACH CMD in array for debugging purposes(subprocess)
-# TODO DETERMINE PREVIOUS COMPILER AND REBUILD IF NEEDED
 # TODO ADD LINTING
 # TODO SUPPORT CORES FLAG
-# TODO SUPPORT ADDITION CMAKE ARGS PASSED IN BY USER
 # TODO SUPPORT MULTIPLE BUILDS(JSON)
 # TODO MAKE SOURCE DIR CONFIGURABLE
 
@@ -59,6 +58,8 @@ EXIT_CODE_FAIL = -1
 DEFAULT_LINE_WIDTH = 100
 
 COVERAGE_EXCLUDES_LIST = ["*third_party/*", "*/tests/*"]
+CMAKE_CACHE_FILE = "CMakeCache.txt"
+CMAKE_CACHE_FILE_COMPILER_STRING="CMAKE_CXX_COMPILER:FILEPATH="
 
 
 class FlagsExtractor:
@@ -93,6 +94,45 @@ class CompilerType(enum.Enum):
     GNU = 0
     CLANG = 1
 
+    @staticmethod
+    def gnu_compiler_info() -> Tuple[str, str]:
+        return tuple(CompilerType.which_gxx(), CompilerType.which_gcc())
+
+    @staticmethod
+    def clang_compiler_info() -> Tuple[str, str]:
+        return tuple(CompilerType.which_clangxx(), CompilerType.which_clang())
+
+    @staticmethod
+    def which_gxx() -> str:
+        which_gxx = subprocess_run(
+            ["which", "g++"], subprocess.PIPE)
+        gxx = which_gxx.stdout.decode('UTF-8').rstrip()
+
+        return gxx
+
+    @staticmethod
+    def which_gcc() -> str:
+        which_gcc = subprocess_run(["which", "gcc"], subprocess.PIPE)
+        gcc = which_gcc.stdout.decode('UTF-8').rstrip()
+
+        return gcc
+
+    @staticmethod
+    def which_clangxx() -> str:
+        which_clangxx = subprocess_run(
+            ["which", "clang++"], subprocess.PIPE)
+        clangxx = which_clangxx.stdout.decode('UTF-8').rstrip()
+
+        return clangxx
+
+    @staticmethod
+    def which_clang() -> str:
+        which_clang = subprocess_run(
+            ["which", "clang"], subprocess.PIPE)
+        clang = which_clang.stdout.decode('UTF-8').rstrip()
+
+        return clang
+
 
 class BuildInfo:
     def __init__(self, build_dir: str, do_clean: bool, cmake_flags: Dict[str, str], env_vars: Dict[str, str]):
@@ -124,27 +164,18 @@ class BuildInfo:
         for k, v in self.env_vars.items():
             if k == COMPILER_FLAG_KEY:
                 if v == CompilerType.GNU:
-                    which_gxx = subprocess_run(
-                        ["which", "g++"], subprocess.PIPE)
-                    gxx = which_gxx.stdout.decode('UTF-8').rstrip()
+                    gxx = CompilerType.which_gxx()
+                    gcc = CompilerType.which_gcc()
 
-                    which_g = subprocess_run(["which", "gcc"], subprocess.PIPE)
-                    g = which_g.stdout.decode('UTF-8').rstrip()
-
-                    if len(gxx) == 0 or len(g) == 0:
+                    if len(gxx) == 0 or len(gcc) == 0:
                         logging.critical("GNU compiler not found")
                         exit(EXIT_CODE_FAIL)
 
-                    env["CC"] = g
+                    env["CC"] = gcc
                     env["CXX"] = gxx
                 elif v == CompilerType.CLANG:
-                    which_clangxx = subprocess_run(
-                        ["which", "clang++"], subprocess.PIPE)
-                    clangxx = which_clangxx.stdout.decode('UTF-8').rstrip()
-
-                    which_clang = subprocess_run(
-                        ["which", "clang"], subprocess.PIPE)
-                    clang = which_clang.stdout.decode('UTF-8').rstrip()
+                    clangxx = CompilerType.which_clangxx()
+                    clang = CompilerType.which_clang()
 
                     if len(clangxx) == 0 or len(clang) == 0:
                         logging.critical("Clang compiler not found")
@@ -167,6 +198,37 @@ class BuildInfo:
     def run_tests(self) -> bool:
         return TESTS_FLAG_KEY in self.cmake_flags
 
+def check_compiler(build_dir: str, compiler_type: CompilerType) -> bool:
+    """Checks if the incoming compiler version is the same as the 
+    previously used one in the CMakeCache.txt, compiler switching
+    requires an environment variable to be set.
+    Returns: True if ok, False if clean is needed.
+    """
+    cmake_cache_file_path = Path(build_dir)/CMAKE_CACHE_FILE
+    if not os.path.isfile(cmake_cache_file_path):
+        return True
+
+    search_line = ""
+    with open(cmake_cache_file_path, 'r') as f:
+        for line in f:
+            if CMAKE_CACHE_FILE_COMPILER_STRING in line:
+                search_line = line
+        
+    if compiler_type == CompilerType.GNU:
+        path = CompilerType.which_gxx()
+
+        if path not in search_line:
+            return False
+
+    if compiler_type == CompilerType.CLANG:
+        path = CompilerType.which_clangxx()
+
+        if path not in search_line:
+            return False
+
+    return True
+
+    
 def check_default_args(args_dict):
     """Ensure that the passed in args from the user have the proper
     default arguments set.
@@ -194,7 +256,7 @@ def check_default_args(args_dict):
     return validated_args_dict
 
 
-def format_build_str(print_str: str, line_len: int = DEFAULT_LINE_WIDTH, fill_char: str = "#") -> None:
+def print_centered(print_str: str, line_len: int = DEFAULT_LINE_WIDTH, fill_char: str = "#") -> None:
     print(print_str.center(line_len, fill_char))
 
 
@@ -333,6 +395,15 @@ def perform_build(args_dict) -> None:
         print(f"Clearing the build directory {build_dir}")
         shutil.rmtree(build_dir)
 
+    compiler_is_same = True
+
+    if COMPILER_FLAG_KEY in args_dict and os.path.exists(build_dir):
+        compiler_is_same = check_compiler(build_dir, args_dict[COMPILER_FLAG_KEY])
+
+    if not compiler_is_same and os.path.exists(build_dir):
+        print(f"Clearing the build directory {build_dir} due to compiler change")
+        shutil.rmtree(build_dir)
+
     if not build_info.get_cached() and not os.path.exists(build_dir):
         print(f"Creating {build_dir}")
         os.mkdir(build_dir)
@@ -384,25 +455,25 @@ def run_cmake(cmake_lists_dir: str, cmake_build_commands: List[str], env_args: D
     # CMake source and build directory parameters
     # https://stackoverflow.com/questions/18826789/cmake-output-build-directory
     logging.debug(f"CMake {cmake_build_commands}")
-    format_build_str("CMAKE Config", fill_char="~")
+    print_centered("CMAKE Config", fill_char="~")
     subprocess_check_call(
         ["cmake"] + [f"-S{cmake_lists_dir}"] + cmake_build_commands, env=env_args)
-    format_build_str("CMAKE Config has completed successfully", fill_char="~")
+    print_centered("CMAKE Config has completed successfully", fill_char="~")
     print_new_line()
 
 
 def run_genhtml(coverage_file_url: str, report_out_dir: str) -> None:
-    format_build_str("Running genhtml", fill_char="~")
+    print_centered("Running genhtml", fill_char="~")
     subprocess_check_call(
         ["genhtml", coverage_file_url,  "--output-directory", report_out_dir])
-    format_build_str("LCOV has completed successfully", fill_char="~")
+    print_centered("LCOV has completed successfully", fill_char="~")
 
 
 def run_lcov(project_directory: str, build_dir: str, coverage_file_url: str, excludes_dirs: List[str] = COVERAGE_EXCLUDES_LIST) -> None:
-    format_build_str("Running LCOV", fill_char="~")
+    print_centered("Running LCOV", fill_char="~")
     subprocess_check_call(["lcov", "--capture", "--directory", build_dir, "--output-file",
                            coverage_file_url, "--no-external", "--base-directory", project_directory] + generate_lcov_excludes(excludes_dirs))
-    format_build_str("LCOV has completed successfully", fill_char="~")
+    print_centered("LCOV has completed successfully", fill_char="~")
 
 
 def run_git_info() -> None:
@@ -415,22 +486,22 @@ def run_git_info() -> None:
 
 def run_make(env_dict: Dict[str, str]):
     # https://stackoverflow.com/questions/7031126/switching-between-gcc-and-clang-llvm-using-cmake
-    format_build_str("Make", fill_char="~")
+    print_centered("Make", fill_char="~")
     subprocess_check_call(
         ["make", "-j", "{}".format(max(1, multiprocessing.cpu_count() - 2))], env=env_dict)
-    format_build_str("Make has completed successfully", fill_char="~")
+    print_centered("Make has completed successfully", fill_char="~")
     print_new_line()
 
 
 def run_make_clean(env_dict: Dict[str, str]):
-    format_build_str("Make Clean", fill_char="~")
+    print_centered("Make Clean", fill_char="~")
     subprocess_check_call(["make", "clean"], env=env_dict)
-    format_build_str("Make Clean has completed successfully", fill_char="~")
+    print_centered("Make Clean has completed successfully", fill_char="~")
     print_new_line()
 
 
 def run_tests():
-    format_build_str("Running Unit Tests", fill_char="-")
+    print_centered("Running Unit Tests", fill_char="-")
     subprocess_check_call(["ctest", "--verbose", "--stop-on-failure"])
 
 
