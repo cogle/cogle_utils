@@ -258,7 +258,7 @@ def check_default_args(args_dict):
     return validated_args_dict
 
 
-def format_build_str(print_str: str, line_len: int = DEFAULT_LINE_WIDTH, fill_char: str = "#") -> None:
+def print_centered(print_str: str, line_len: int = DEFAULT_LINE_WIDTH, fill_char: str = "#") -> None:
     print(print_str.center(line_len, fill_char))
 
 
@@ -457,25 +457,25 @@ def run_cmake(cmake_lists_dir: str, cmake_build_commands: List[str], env_args: D
     # CMake source and build directory parameters
     # https://stackoverflow.com/questions/18826789/cmake-output-build-directory
     logging.debug(f"CMake {cmake_build_commands}")
-    format_build_str("CMAKE Config", fill_char="~")
+    print_centered("CMAKE Config", fill_char="~")
     subprocess_check_call(
         ["cmake"] + [f"-S{cmake_lists_dir}"] + cmake_build_commands, env=env_args)
-    format_build_str("CMAKE Config has completed successfully", fill_char="~")
+    print_centered("CMAKE Config has completed successfully", fill_char="~")
     print_new_line()
 
 
 def run_genhtml(coverage_file_url: str, report_out_dir: str) -> None:
-    format_build_str("Running genhtml", fill_char="~")
+    print_centered("Running genhtml", fill_char="~")
     subprocess_check_call(
         ["genhtml", coverage_file_url,  "--output-directory", report_out_dir])
-    format_build_str("LCOV has completed successfully", fill_char="~")
+    print_centered("LCOV has completed successfully", fill_char="~")
 
 
 def run_lcov(project_directory: str, build_dir: str, coverage_file_url: str, excludes_dirs: List[str] = COVERAGE_EXCLUDES_LIST) -> None:
-    format_build_str("Running LCOV", fill_char="~")
+    print_centered("Running LCOV", fill_char="~")
     subprocess_check_call(["lcov", "--capture", "--directory", build_dir, "--output-file",
                            coverage_file_url, "--no-external", "--base-directory", project_directory] + generate_lcov_excludes(excludes_dirs))
-    format_build_str("LCOV has completed successfully", fill_char="~")
+    print_centered("LCOV has completed successfully", fill_char="~")
 
 
 def run_git_info() -> None:
@@ -488,22 +488,22 @@ def run_git_info() -> None:
 
 def run_make(env_dict: Dict[str, str]):
     # https://stackoverflow.com/questions/7031126/switching-between-gcc-and-clang-llvm-using-cmake
-    format_build_str("Make", fill_char="~")
+    print_centered("Make", fill_char="~")
     subprocess_check_call(
         ["make", "-j", "{}".format(max(1, multiprocessing.cpu_count() - 2))], env=env_dict)
-    format_build_str("Make has completed successfully", fill_char="~")
+    print_centered("Make has completed successfully", fill_char="~")
     print_new_line()
 
 
 def run_make_clean(env_dict: Dict[str, str]):
-    format_build_str("Make Clean", fill_char="~")
+    print_centered("Make Clean", fill_char="~")
     subprocess_check_call(["make", "clean"], env=env_dict)
-    format_build_str("Make Clean has completed successfully", fill_char="~")
+    print_centered("Make Clean has completed successfully", fill_char="~")
     print_new_line()
 
 
 def run_tests():
-    format_build_str("Running Unit Tests", fill_char="-")
+    print_centered("Running Unit Tests", fill_char="-")
     subprocess_check_call(["ctest", "--verbose", "--stop-on-failure"])
 
 
