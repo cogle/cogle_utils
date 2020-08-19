@@ -11,7 +11,7 @@ import shutil
 import multiprocessing
 
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -32,10 +32,10 @@ CMAKE_BUILD_FLAG_KEY = "cmake_build_flag"
 BUILD_DIR_FLAG_KEY = "cmake_build_dir"
 BUILD_DIR_CMAKE_FLAG_KEY = "cmake_build_dir_flag"
 
+# TODO SUPPORT ADDITION CMAKE ARGS PASSED IN BY USER
 # TODO PUT EACH CMD in array for debugging purposes(subprocess)
 # TODO ADD LINTING
 # TODO SUPPORT CORES FLAG
-# TODO SUPPORT ADDITION CMAKE ARGS PASSED IN BY USER
 # TODO SUPPORT MULTIPLE BUILDS(JSON)
 # TODO MAKE SOURCE DIR CONFIGURABLE
 
@@ -94,14 +94,12 @@ class CompilerType(enum.Enum):
     GNU = 0
     CLANG = 1
 
-    #TODO Tuple typing
     @staticmethod
-    def gnu_compiler_info():
+    def gnu_compiler_info() -> Tuple[str, str]:
         return tuple(CompilerType.which_gxx(), CompilerType.which_gcc())
 
-    #TODO Tuple typing
     @staticmethod
-    def clang_compiler_info():
+    def clang_compiler_info() -> Tuple[str, str]:
         return tuple(CompilerType.which_clangxx(), CompilerType.which_clang())
 
     @staticmethod
