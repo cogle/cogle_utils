@@ -867,7 +867,7 @@ TEST_CASE("ResultStorage Non-Trivial multiple assignment [result][ResultStorage]
         {
             REQUIRE(initial_err.num_vec.size() == VEC_SIZE);
             std::for_each(initial_err.num_vec.begin(), initial_err.num_vec.end(),
-                          [m = initial_err.num_map, ref_vec = vec, ref_map = kv_map, count = 0](const auto& i) mutable {
+                          [m = initial_err.num_map, ref_vec = vec, ref_map = kv_map, count = 0ul](const auto& i) mutable {
                               REQUIRE(i == ref_vec[count]);
                               REQUIRE_FALSE(m.count(i) == 0);
                               REQUIRE(m[i] == ref_map[i]);
@@ -895,7 +895,7 @@ TEST_CASE("ResultStorage Non-Trivial multiple assignment [result][ResultStorage]
 
             REQUIRE(initial_err_chk.num_vec.size() == VEC_SIZE);
             std::for_each(initial_err_chk.num_vec.begin(), initial_err_chk.num_vec.end(),
-                          [m = initial_err.num_map, ref_vec = vec, ref_map = kv_map, count = 0](const auto& i) mutable {
+                          [m = initial_err.num_map, ref_vec = vec, ref_map = kv_map, count = 0ul](const auto& i) mutable {
                               REQUIRE(i == ref_vec[count]);
                               REQUIRE_FALSE(m.count(i) == 0);
                               REQUIRE(m[i] == ref_map[i]);
@@ -905,7 +905,7 @@ TEST_CASE("ResultStorage Non-Trivial multiple assignment [result][ResultStorage]
             REQUIRE(initial_storage_now_err.num_vec.size() == VEC_SIZE);
             std::for_each(initial_storage_now_err.num_vec.begin(), initial_storage_now_err.num_vec.end(),
                           [m = initial_storage_now_err.num_map, ref_vec = vec, ref_map = kv_map,
-                           count = 0](const auto& i) mutable {
+                           count = 0ul](const auto& i) mutable {
                               REQUIRE(i == ref_vec[count]);
                               REQUIRE_FALSE(m.count(i) == 0);
                               REQUIRE(m[i] == ref_map[i]);
@@ -953,7 +953,7 @@ TEST_CASE("ResultStorage Non-Trivial multiple assignment [result][ResultStorage]
             REQUIRE(initial_err_scope.num_vec.size() == VEC_SIZE);
             std::for_each(
                 initial_err_scope.num_vec.begin(), initial_err_scope.num_vec.end(),
-                [m = initial_err_scope.num_map, ref_vec = vec, ref_map = kv_map, count = 0](const auto& i) mutable {
+                [m = initial_err_scope.num_map, ref_vec = vec, ref_map = kv_map, count = 0ul](const auto& i) mutable {
                     REQUIRE(i == ref_vec[count]);
                     REQUIRE_FALSE(m.count(i) == 0);
                     REQUIRE(m[i] == ref_map[i]);

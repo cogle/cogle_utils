@@ -33,7 +33,6 @@ BUILD_DIR_FLAG_KEY = "cmake_build_dir"
 BUILD_DIR_CMAKE_FLAG_KEY = "cmake_build_dir_flag"
 
 # TODO PUT EACH CMD in array for debugging purposes(subprocess)
-# TODO DETERMINE PREVIOUS COMPILER AND REBUILD IF NEEDED
 # TODO ADD LINTING
 # TODO SUPPORT CORES FLAG
 # TODO SUPPORT ADDITION CMAKE ARGS PASSED IN BY USER
@@ -59,6 +58,8 @@ EXIT_CODE_FAIL = -1
 DEFAULT_LINE_WIDTH = 100
 
 COVERAGE_EXCLUDES_LIST = ["*third_party/*", "*/tests/*"]
+CMAKE_CACHE_FILE = "CMakeCache.txt"
+CMAKE_CACHE_FILE_COMPILER_STRING="CMAKE_CXX_COMPILER:FILEPATH="
 
 
 class FlagsExtractor:
@@ -93,6 +94,47 @@ class CompilerType(enum.Enum):
     GNU = 0
     CLANG = 1
 
+    #TODO Tuple typing
+    @staticmethod
+    def gnu_compiler_info():
+        return tuple(CompilerType.which_gxx(), CompilerType.which_gcc())
+
+    #TODO Tuple typing
+    @staticmethod
+    def clang_compiler_info():
+        return tuple(CompilerType.which_clangxx(), CompilerType.which_clang())
+
+    @staticmethod
+    def which_gxx() -> str:
+        which_gxx = subprocess_run(
+            ["which", "g++"], subprocess.PIPE)
+        gxx = which_gxx.stdout.decode('UTF-8').rstrip()
+
+        return gxx
+
+    @staticmethod
+    def which_gcc() -> str:
+        which_gcc = subprocess_run(["which", "gcc"], subprocess.PIPE)
+        gcc = which_gcc.stdout.decode('UTF-8').rstrip()
+
+        return gcc
+
+    @staticmethod
+    def which_clangxx() -> str:
+        which_clangxx = subprocess_run(
+            ["which", "clang++"], subprocess.PIPE)
+        clangxx = which_clangxx.stdout.decode('UTF-8').rstrip()
+
+        return clangxx
+
+    @staticmethod
+    def which_clang() -> str:
+        which_clang = subprocess_run(
+            ["which", "clang"], subprocess.PIPE)
+        clang = which_clang.stdout.decode('UTF-8').rstrip()
+
+        return clang
+
 
 class BuildInfo:
     def __init__(self, build_dir: str, do_clean: bool, cmake_flags: Dict[str, str], env_vars: Dict[str, str]):
@@ -124,27 +166,18 @@ class BuildInfo:
         for k, v in self.env_vars.items():
             if k == COMPILER_FLAG_KEY:
                 if v == CompilerType.GNU:
-                    which_gxx = subprocess_run(
-                        ["which", "g++"], subprocess.PIPE)
-                    gxx = which_gxx.stdout.decode('UTF-8').rstrip()
+                    gxx = CompilerType.which_gxx()
+                    gcc = CompilerType.which_gcc()
 
-                    which_g = subprocess_run(["which", "gcc"], subprocess.PIPE)
-                    g = which_g.stdout.decode('UTF-8').rstrip()
-
-                    if len(gxx) == 0 or len(g) == 0:
+                    if len(gxx) == 0 or len(gcc) == 0:
                         logging.critical("GNU compiler not found")
                         exit(EXIT_CODE_FAIL)
 
-                    env["CC"] = g
+                    env["CC"] = gcc
                     env["CXX"] = gxx
                 elif v == CompilerType.CLANG:
-                    which_clangxx = subprocess_run(
-                        ["which", "clang++"], subprocess.PIPE)
-                    clangxx = which_clangxx.stdout.decode('UTF-8').rstrip()
-
-                    which_clang = subprocess_run(
-                        ["which", "clang"], subprocess.PIPE)
-                    clang = which_clang.stdout.decode('UTF-8').rstrip()
+                    clangxx = CompilerType.which_clangxx()
+                    clang = CompilerType.which_clang()
 
                     if len(clangxx) == 0 or len(clang) == 0:
                         logging.critical("Clang compiler not found")
@@ -167,6 +200,37 @@ class BuildInfo:
     def run_tests(self) -> bool:
         return TESTS_FLAG_KEY in self.cmake_flags
 
+def check_compiler(build_dir: str, compiler_type: CompilerType) -> bool:
+    """Checks if the incoming compiler version is the same as the 
+    previously used one in the CMakeCache.txt, compiler switching
+    requires an environment variable to be set.
+    Returns: True if ok, False if clean is needed.
+    """
+    cmake_cache_file_path = Path(build_dir)/CMAKE_CACHE_FILE
+    if not os.path.isfile(cmake_cache_file_path):
+        return True
+
+    search_line = ""
+    with open(cmake_cache_file_path, 'r') as f:
+        for line in f:
+            if CMAKE_CACHE_FILE_COMPILER_STRING in line:
+                search_line = line
+        
+    if compiler_type == CompilerType.GNU:
+        path = CompilerType.which_gxx()
+
+        if path not in search_line:
+            return False
+
+    if compiler_type == CompilerType.CLANG:
+        path = CompilerType.which_clangxx()
+
+        if path not in search_line:
+            return False
+
+    return True
+
+    
 def check_default_args(args_dict):
     """Ensure that the passed in args from the user have the proper
     default arguments set.
@@ -331,6 +395,15 @@ def perform_build(args_dict) -> None:
 
     if args_dict[WIPE_FLAG_KEY] and os.path.exists(build_dir):
         print(f"Clearing the build directory {build_dir}")
+        shutil.rmtree(build_dir)
+
+    compiler_is_same = True
+
+    if COMPILER_FLAG_KEY in args_dict and os.path.exists(build_dir):
+        compiler_is_same = check_compiler(build_dir, args_dict[COMPILER_FLAG_KEY])
+
+    if not compiler_is_same and os.path.exists(build_dir):
+        print(f"Clearing the build directory {build_dir} due to compiler change")
         shutil.rmtree(build_dir)
 
     if not build_info.get_cached() and not os.path.exists(build_dir):
