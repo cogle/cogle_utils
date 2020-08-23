@@ -23,6 +23,7 @@ COMPILER_FLAG_KEY = "compiler"
 WIPE_FLAG_KEY = "wipe"
 GCOV_FLAG_KEY = "gcov"
 EXAMPLES_FLAG_KEY = "examples"
+CMAKE_USER_DEFINITIONS = "user_args"
 
 # Key Pairs
 # TODO Try to coalesce into a single flag
@@ -32,14 +33,12 @@ CMAKE_BUILD_FLAG_KEY = "cmake_build_flag"
 BUILD_DIR_FLAG_KEY = "cmake_build_dir"
 BUILD_DIR_CMAKE_FLAG_KEY = "cmake_build_dir_flag"
 
-# TODO SUPPORT ADDITION CMAKE ARGS PASSED IN BY USER
 # TODO PUT EACH CMD in array for debugging purposes(subprocess)
-# TODO ADD LINTING
 # TODO SUPPORT CORES FLAG
 # TODO SUPPORT MULTIPLE BUILDS(JSON)
 # TODO MAKE SOURCE DIR CONFIGURABLE
 
-CMAKE_BUILD_ARGS_KEYS_SET = {CMAKE_BUILD_FLAG_KEY, TESTS_FLAG_KEY,
+CMAKE_BUILD_ARGS_KEYS_SET = {CMAKE_BUILD_FLAG_KEY, TESTS_FLAG_KEY, CMAKE_USER_DEFINITIONS,
                              TSAN_FLAG_KEY, ASAN_FLAG_KEY, BUILD_DIR_CMAKE_FLAG_KEY, GCOV_FLAG_KEY, EXAMPLES_FLAG_KEY}
 BUILD_ENV_KEYS_SET = {COMPILER_FLAG_KEY}
 
@@ -59,7 +58,7 @@ DEFAULT_LINE_WIDTH = 100
 
 COVERAGE_EXCLUDES_LIST = ["*third_party/*", "*/tests/*"]
 CMAKE_CACHE_FILE = "CMakeCache.txt"
-CMAKE_CACHE_FILE_COMPILER_STRING="CMAKE_CXX_COMPILER:FILEPATH="
+CMAKE_CACHE_FILE_COMPILER_STRING = "CMAKE_CXX_COMPILER:FILEPATH="
 
 
 class FlagsExtractor:
@@ -155,8 +154,7 @@ class BuildInfo:
     def get_cmake_flags(self) -> List[str]:
         ret = list()
         for _, v in self.cmake_flags.items():
-            ret.append(str(v))
-
+            ret = ret + str(v).strip().split(" ")
         return ret
 
     def get_env_vars(self) -> Dict[str, str]:
@@ -198,6 +196,7 @@ class BuildInfo:
     def run_tests(self) -> bool:
         return TESTS_FLAG_KEY in self.cmake_flags
 
+
 def check_compiler(build_dir: str, compiler_type: CompilerType) -> bool:
     """Checks if the incoming compiler version is the same as the 
     previously used one in the CMakeCache.txt, compiler switching
@@ -213,7 +212,7 @@ def check_compiler(build_dir: str, compiler_type: CompilerType) -> bool:
         for line in f:
             if CMAKE_CACHE_FILE_COMPILER_STRING in line:
                 search_line = line
-        
+
     if compiler_type == CompilerType.GNU:
         path = CompilerType.which_gxx()
 
@@ -228,7 +227,7 @@ def check_compiler(build_dir: str, compiler_type: CompilerType) -> bool:
 
     return True
 
-    
+
 def check_default_args(args_dict):
     """Ensure that the passed in args from the user have the proper
     default arguments set.
@@ -273,6 +272,8 @@ def generate_lcov_excludes(excludes_list: List[str]) -> List[str]:
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "--custom_defs", help="User specified CMake Definitions", action="store", type=str)
+    parser.add_argument(
         "--dir", help="Directory to place build folder in", action="store", type=str)
     parser.add_argument(
         "--clang", help="Use clang++ compiler to build(default)", action="store_true")
@@ -291,7 +292,7 @@ def parse_args():
     parser.add_argument(
         "--tests", help="Build with unit tests", action="store_true")
     parser.add_argument(
-            "--examples", help="Build with examples", action="store_true")
+        "--examples", help="Build with examples", action="store_true")
     parser.add_argument("--clean", help="Build clean", action="store_true")
     parser.add_argument(
         "--wipe", help="Wipes the build directory by removing it", action="store_true")
@@ -377,6 +378,10 @@ def parse_args():
 
         ret[BUILD_DIR_CMAKE_FLAG_KEY] = f"-B{args.dir}"
         ret[BUILD_DIR_FLAG_KEY] = f"{args.dir}"
+
+    # user specified CMake Definitions
+    if args.custom_defs:
+        ret[CMAKE_USER_DEFINITIONS] = args.custom_defs
 
     return ret
 
