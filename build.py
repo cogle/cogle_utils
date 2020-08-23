@@ -154,7 +154,7 @@ class BuildInfo:
     def get_cmake_flags(self) -> List[str]:
         ret = list()
         for _, v in self.cmake_flags.items():
-            ret = ret + str(v).strip().split(" ")
+            ret += str(v).strip().split(" ")
         return ret
 
     def get_env_vars(self) -> Dict[str, str]:
