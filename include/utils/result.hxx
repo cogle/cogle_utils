@@ -949,6 +949,12 @@ public:
         return match_(std::move(storage_), std::forward<OkF>(ok_func), std::forward<ErrF>(err_func));
     }
 
+    template<typename F>
+    [[nodiscard]] constexpr auto operator>>(F && f) {
+        // TODO NEED to check if it is a function, handle void and invalidate object.
+        return f(storage_.get_result());
+    }
+
 private:
     // Non-void and_then_
     template <typename S, typename F, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>

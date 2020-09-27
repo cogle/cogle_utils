@@ -424,4 +424,25 @@ TEST_CASE("Result Non-POD Types [result]") {
     }
 }
 
+TEST_CASE("Result >> Operator") {
+    SECTION("Result<char, int> Ok >>") {
+        constexpr char a = 'a';
+        constexpr auto ret = 1;
+
+        Ok<char> ok_char{a};
+        Result<char, int> result{ok_char};
+
+        REQUIRE(result.is_ok());
+        REQUIRE_FALSE(result.is_err());
+
+        auto func = [a, ret](char c) {
+            REQUIRE(c == a);
+            return ret;
+        };
+
+        REQUIRE((result >> func) == ret);
+    }   
+}
+
+
 }  // namespace
