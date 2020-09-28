@@ -971,9 +971,10 @@ public:
     // Custom >> operator non-void function return value
     // This will abort if the result contains error.
     template <typename F, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
-    constexpr std::enable_if_t<!std::is_same_v<traits::invoke_result_t<F&&>, void>,
-                               traits::invoke_result_t<F&&>>
+    constexpr std::enable_if_t<!std::is_same_v<traits::invoke_result_t<F&&>, void>, traits::invoke_result_t<F&&>>
     operator>>(F&& func) {
+        static_assert(traits::is_invocable_v<F&&>);
+        detail::assert_ok(storage_.get_tag());
         return func();
     }
 
@@ -982,6 +983,8 @@ public:
     // This will abort if the result contains error.
     template <typename F, typename X = R, typename = std::enable_if_t<std::is_void_v<X>>>
     constexpr std::enable_if_t<std::is_same_v<traits::invoke_result_t<F&&>, void>, void> operator>>(F&& func) {
+        static_assert(traits::is_invocable_v<F&&>);
+        detail::assert_ok(storage_.get_tag());
         func();
     }
 

@@ -480,9 +480,7 @@ TEST_CASE("Result >> Operator") {
         REQUIRE(result.is_ok());
         REQUIRE_FALSE(result.is_err());
 
-        auto func = [&counter]() {
-            counter += 1;
-        };
+        auto func = [&counter]() { counter += 1; };
 
         REQUIRE(counter == 0);
         result >> func;
