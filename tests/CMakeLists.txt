@@ -26,7 +26,9 @@ target_link_libraries(
     ${TEST_TARGET}
     PUBLIC
     cogle_utils::lib
-    ${CUSTOM_LINKER_FLAGS}
+    Catch2::Catch2
 )
+
+target_link_options(${TEST_TARGET} PRIVATE ${CUSTOM_LINKER_FLAGS})
 
 add_test(NAME UtilsUnitTests COMMAND ${TEST_TARGET} -s -a)
