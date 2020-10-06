@@ -17,10 +17,10 @@ target_include_directories(
     ${THIRD_PARTY_INCLUDES}
 )
 
+target_link_options(${EXAMPLE_TARGET} PRIVATE ${CUSTOM_LINKER_FLAGS})
 target_link_libraries(
     ${EXAMPLE_TARGET}
     PUBLIC
     cogle_utils::lib
-    ${CUSTOM_LINKER_FLAGS}
 )
 

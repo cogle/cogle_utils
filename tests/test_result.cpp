@@ -424,4 +424,90 @@ TEST_CASE("Result Non-POD Types [result]") {
     }
 }
 
+TEST_CASE("Result >> Operator") {
+    SECTION("Result<char, int> Ok >> void func") {
+        constexpr char a   = 'a';
+        constexpr auto ret = 1;
+
+        std::size_t counter = 0;
+
+        Ok<char> ok_char{a};
+        Result<char, int> result{ok_char};
+
+        REQUIRE(result.is_ok());
+        REQUIRE_FALSE(result.is_err());
+
+        auto func = [a, &counter](char c) {
+            REQUIRE(c == a);
+            counter += 1;
+        };
+
+        REQUIRE(counter == 0);
+        result >> func;
+        REQUIRE(counter == ret);
+    }
+    SECTION("Result<char, int> Ok >> int func") {
+        constexpr char a   = 'a';
+        constexpr auto ret = 1;
+
+        std::size_t counter = 0;
+
+        Ok<char> ok_char{a};
+        Result<char, int> result{ok_char};
+
+        REQUIRE(result.is_ok());
+        REQUIRE_FALSE(result.is_err());
+
+        auto func = [a, &counter](char c) {
+            REQUIRE(c == a);
+            counter += 1;
+            return static_cast<int>(c);
+        };
+
+        REQUIRE(counter == 0);
+        auto val = result >> func;
+        REQUIRE(counter == ret);
+        REQUIRE(val == static_cast<int>(a));
+    }
+    SECTION("Result<void, int> Ok >> void func") {
+        constexpr auto ret = 1;
+
+        std::size_t counter = 0;
+
+        Ok<void> ok_void{};
+        Result<void, int> result{ok_void};
+
+        REQUIRE(result.is_ok());
+        REQUIRE_FALSE(result.is_err());
+
+        auto func = [&counter]() { counter += 1; };
+
+        REQUIRE(counter == 0);
+        result >> func;
+        REQUIRE(counter == ret);
+    }
+    SECTION("Result<void, int> Ok >> int func") {
+        constexpr char a   = 'a';
+        constexpr auto ret = 1;
+
+        std::size_t counter = 0;
+
+        Ok<void> ok_void{};
+        Result<void, int> result{ok_void};
+
+        REQUIRE(result.is_ok());
+        REQUIRE_FALSE(result.is_err());
+
+        auto func = [a, &counter]() {
+            counter += 1;
+            return static_cast<int>(a);
+        };
+
+        REQUIRE(counter == 0);
+        auto val = result >> func;
+        REQUIRE(counter == ret);
+        REQUIRE(val == static_cast<int>(a));
+    }
+}
+
 }  // namespace

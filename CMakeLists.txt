@@ -48,6 +48,7 @@ if(WITH_EXAMPLES)
 endif(WITH_EXAMPLES)
 
 if (WITH_TESTS)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/Catch2)
     enable_testing()
     add_subdirectory(tests/)
 endif(WITH_TESTS)
