@@ -16,8 +16,7 @@ from typing import Dict, List, Optional, Tuple
 logging.basicConfig(level=logging.ERROR)
 
 TESTS_FLAG_KEY = "tests"
-TSAN_FLAG_KEY = "tsan"
-ASAN_FLAG_KEY = "asan"
+SANITIZER_FLAG_KEY = "sanitizer"
 CLEAN_FLAG_KEY = "clean"
 COMPILER_FLAG_KEY = "compiler"
 WIPE_FLAG_KEY = "wipe"
@@ -39,14 +38,12 @@ BUILD_DIR_CMAKE_FLAG_KEY = "cmake_build_dir_flag"
 # TODO MAKE SOURCE DIR CONFIGURABLE
 
 CMAKE_BUILD_ARGS_KEYS_SET = {CMAKE_BUILD_FLAG_KEY, TESTS_FLAG_KEY, CMAKE_USER_DEFINITIONS,
-                             TSAN_FLAG_KEY, ASAN_FLAG_KEY, BUILD_DIR_CMAKE_FLAG_KEY, GCOV_FLAG_KEY, EXAMPLES_FLAG_KEY}
+                             SANITIZER_FLAG_KEY, BUILD_DIR_CMAKE_FLAG_KEY, GCOV_FLAG_KEY, EXAMPLES_FLAG_KEY}
 BUILD_ENV_KEYS_SET = {COMPILER_FLAG_KEY}
 
 REQUIRED_KEYS = {BUILD_FLAG_KEY, BUILD_DIR_FLAG_KEY, COMPILER_FLAG_KEY}
 
 # Add your CMake Flags here
-TSAN_BUILD = "-DWITH_TSAN=true"
-ASAN_BUILD = "-DWITH_ASAN=true"
 GCOV_BUILD = "-DWITH_GCOV=true"
 
 UNIT_TESTS_BUILD = "-DWITH_TESTS=true"
@@ -84,22 +81,47 @@ class FlagsExtractor:
         return build_env
 
 
-class BuildType(enum.Enum):
-    DEBUG = 0
-    RELEASE = 1
+class ExtendedEnum(enum.Enum):
+    @classmethod
+    def list(cls):
+        return list(map(lambda c: c.value.lower(), cls))
 
 
-class CompilerType(enum.Enum):
-    GNU = 0
-    CLANG = 1
+class Sanitizers(ExtendedEnum):
+    ASAN = "ASAN"
+    TSAN = "TSAN"
+    UBSAN = "UBSAN"
+
+    def create_cmake_sanitizer_str(self):
+        if self.ASAN:
+            return "-DWITH_ASAN=true"
+        elif self.TSAN:
+            return "-DWITH_TSAN=true"
+        elif self.UBSAN:
+            return "-DWITH_UBSAN=true"
+        else:
+            return ""
+
+
+class BuildTypes(ExtendedEnum):
+    DEBUG = "DEBUG"
+    RELEASE = "RELEASE"
+
+    def create_cmake_build_type_str(self):
+        return f"-DCMAKE_BUILD_TYPE={self.value}"
+
+
+class Compilers(ExtendedEnum):
+    GNU = "GNU"
+    CLANG = "CLANG"
 
     @staticmethod
     def gnu_compiler_info() -> Tuple[str, str]:
-        return tuple(CompilerType.which_gxx(), CompilerType.which_gcc())
+        return tuple(Compilers.which_gxx(), Compilers.which_gcc())
 
     @staticmethod
     def clang_compiler_info() -> Tuple[str, str]:
-        return tuple(CompilerType.which_clangxx(), CompilerType.which_clang())
+        return tuple(Compilers.which_clangxx(), Compilers.which_clang())
 
     @staticmethod
     def which_gxx() -> str:
@@ -161,9 +183,9 @@ class BuildInfo:
         env = os.environ.copy()
         for k, v in self.env_vars.items():
             if k == COMPILER_FLAG_KEY:
-                if v == CompilerType.GNU:
-                    gxx = CompilerType.which_gxx()
-                    gcc = CompilerType.which_gcc()
+                if v == Compilers.GNU:
+                    gxx = Compilers.which_gxx()
+                    gcc = Compilers.which_gcc()
 
                     if len(gxx) == 0 or len(gcc) == 0:
                         logging.critical("GNU compiler not found")
@@ -171,9 +193,9 @@ class BuildInfo:
 
                     env["CC"] = gcc
                     env["CXX"] = gxx
-                elif v == CompilerType.CLANG:
-                    clangxx = CompilerType.which_clangxx()
-                    clang = CompilerType.which_clang()
+                elif v == Compilers.CLANG:
+                    clangxx = Compilers.which_clangxx()
+                    clang = Compilers.which_clang()
 
                     if len(clangxx) == 0 or len(clang) == 0:
                         logging.critical("Clang compiler not found")
@@ -197,7 +219,7 @@ class BuildInfo:
         return TESTS_FLAG_KEY in self.cmake_flags
 
 
-def check_compiler(build_dir: str, compiler_type: CompilerType) -> bool:
+def check_compiler(build_dir: str, compiler_type: Compilers) -> bool:
     """Checks if the incoming compiler version is the same as the 
     previously used one in the CMakeCache.txt, compiler switching
     requires an environment variable to be set.
@@ -213,14 +235,14 @@ def check_compiler(build_dir: str, compiler_type: CompilerType) -> bool:
             if CMAKE_CACHE_FILE_COMPILER_STRING in line:
                 search_line = line
 
-    if compiler_type == CompilerType.GNU:
-        path = CompilerType.which_gxx()
+    if compiler_type == Compilers.GNU:
+        path = Compilers.which_gxx()
 
         if path not in search_line:
             return False
 
-    if compiler_type == CompilerType.CLANG:
-        path = CompilerType.which_clangxx()
+    if compiler_type == Compilers.CLANG:
+        path = Compilers.which_clangxx()
 
         if path not in search_line:
             return False
@@ -238,16 +260,17 @@ def check_default_args(args_dict):
     for k in REQUIRED_KEYS:
         if k not in args_dict:
             if k == BUILD_FLAG_KEY:
-                validated_args_dict[k] = BuildType.DEBUG
+                debug_build_type_enum = BuildTypes.DEBUG
+                validated_args_dict[k] = debug_build_type_enum
                 validated_args_dict[
-                    CMAKE_BUILD_FLAG_KEY] = f"-DCMAKE_BUILD_TYPE={BuildType.DEBUG.name}"
+                    CMAKE_BUILD_FLAG_KEY] = debug_build_type_enum.create_cmake_build_type_str()
             elif k == BUILD_DIR_FLAG_KEY:
                 build_dir = os.path.join(os.getcwd(), "build")
 
                 validated_args_dict[k] = build_dir
                 validated_args_dict[BUILD_DIR_CMAKE_FLAG_KEY] = f"-B{build_dir}"
             elif k == COMPILER_FLAG_KEY:
-                validated_args_dict[k] = CompilerType.CLANG
+                validated_args_dict[k] = Compilers.CLANG
             else:
                 print(f"Key {k} is required but is not handled")
                 exit(EXIT_CODE_FAIL)
@@ -276,19 +299,13 @@ def parse_args():
     parser.add_argument(
         "--dir", help="Directory to place build folder in", action="store", type=str)
     parser.add_argument(
-        "--clang", help="Use clang++ compiler to build(default)", action="store_true")
+        "--compiler", help="Supported compilers: GNU,Clang", type=str.lower, choices=Compilers.list())
     parser.add_argument(
-        "--gnu", help="Use g++ compiler to build", action="store_true")
+        "--sanitizer", help="Supported sanitizers: ASAN,TSAN,UBSAN", type=str.lower, choices=Sanitizers.list())
     parser.add_argument(
-        "--tsan", help="Build using tsan utility to check thread safety", action="store_true")
-    parser.add_argument(
-        "--asan", help="Build using asan utility to check memory safety", action="store_true")
+        "--build_type", help="Supported build types: DEBUG, RELEASE", type=str.lower, choices=BuildTypes.list())
     parser.add_argument(
         "--gcov", help="Build using gcov utility to check code coverage", action="store_true")
-    parser.add_argument(
-        "--debug", help="Build using debug version(default)", action="store_true")
-    parser.add_argument(
-        "--release", help="Build using release version", action="store_true")
     parser.add_argument(
         "--tests", help="Build with unit tests", action="store_true")
     parser.add_argument(
@@ -313,36 +330,17 @@ def parse_args():
     else:
         ret[CLEAN_FLAG_KEY] = False
 
-    # Check and ensure that either GNU or Clang is selected
-    if args.gnu and args.clang:
-        parser.error(
-            "Unable to build with both G++ and Clang++ please specify only ONE")
-
-    # Check and ensure that either Debug or Release is selected.
-    if args.debug and args.release:
-        parser.error(
-            "Unable to build with both G++ and Clang++ please specify only ONE")
-
-    # Check and ensure that either ASAN or TSAN is selected.
-    if args.asan and args.tsan:
-        parser.error(
-            "Unable to build with both ASAN and TSAN please specify only ONE")
-
     # Assign all variables based upon input parameters
 
     # Compiler Selection
-    if args.gnu:
-        ret[COMPILER_FLAG_KEY] = CompilerType.GNU
-    elif args.clang:
-        ret[COMPILER_FLAG_KEY] = CompilerType.CLANG
+    if args.compiler:
+        ret[COMPILER_FLAG_KEY] = Compilers(args.compiler.upper())
 
     # Build Type Selection
-    if args.release:
-        ret[BUILD_FLAG_KEY] = BuildType.RELEASE
-        ret[CMAKE_BUILD_FLAG_KEY] = f"-DCMAKE_BUILD_TYPE={BuildType.RELEASE.name}"
-    elif args.debug:
-        ret[BUILD_FLAG_KEY] = BuildType.DEBUG
-        ret[CMAKE_BUILD_FLAG_KEY] = f"-DCMAKE_BUILD_TYPE={BuildType.DEBUG.name}"
+    if args.build_type:
+        build_type_enum = BuildTypes(args.build_types.upper())
+        ret[BUILD_FLAG_KEY] = build_type_enum
+        ret[CMAKE_BUILD_FLAG_KEY] = build_type_enum.create_cmake_build_type_str()
 
     # wipe
     if args.wipe:
@@ -350,15 +348,12 @@ def parse_args():
     else:
         ret[WIPE_FLAG_KEY] = False
 
-    # tsan
-    if args.tsan:
-        ret[TSAN_FLAG_KEY] = TSAN_BUILD
+    # sanitizers
+    if args.sanitizer:
+        sanitizer_enum = args.sanitizer.upper()
+        #ret[SANITIZER_FLAG_KEY] = Sanitizers()
 
-    # asan
-    if args.asan:
-        ret[ASAN_FLAG_KEY] = ASAN_BUILD
-
-    # asan
+    # gcov
     if args.gcov:
         ret[GCOV_FLAG_KEY] = GCOV_BUILD
 
@@ -403,10 +398,12 @@ def perform_build(args_dict) -> None:
     compiler_is_same = True
 
     if COMPILER_FLAG_KEY in args_dict and os.path.exists(build_dir):
-        compiler_is_same = check_compiler(build_dir, args_dict[COMPILER_FLAG_KEY])
+        compiler_is_same = check_compiler(
+            build_dir, args_dict[COMPILER_FLAG_KEY])
 
     if not compiler_is_same and os.path.exists(build_dir):
-        print(f"Clearing the build directory {build_dir} due to compiler change")
+        print(
+            f"Clearing the build directory {build_dir} due to compiler change")
         shutil.rmtree(build_dir)
 
     if not build_info.get_cached() and not os.path.exists(build_dir):
