@@ -93,14 +93,7 @@ class Sanitizers(ExtendedEnum):
     UBSAN = "UBSAN"
 
     def create_cmake_sanitizer_str(self):
-        if self.ASAN:
-            return "-DWITH_ASAN=true"
-        elif self.TSAN:
-            return "-DWITH_TSAN=true"
-        elif self.UBSAN:
-            return "-DWITH_UBSAN=true"
-        else:
-            return ""
+        return f"-DWITH_{self.value}=true"
 
 
 class BuildTypes(ExtendedEnum):
@@ -301,7 +294,7 @@ def parse_args():
     parser.add_argument(
         "--compiler", help="Supported compilers: GNU,Clang", type=str.lower, choices=Compilers.list())
     parser.add_argument(
-        "--sanitizer", help="Supported sanitizers: ASAN,TSAN,UBSAN", type=str.lower, choices=Sanitizers.list())
+        "--sanitizer", action="append", help="Supported sanitizers: ASAN,TSAN,UBSAN", type=str.lower, choices=Sanitizers.list())
     parser.add_argument(
         "--build_type", help="Supported build types: DEBUG, RELEASE", type=str.lower, choices=BuildTypes.list())
     parser.add_argument(
@@ -350,8 +343,12 @@ def parse_args():
 
     # sanitizers
     if args.sanitizer:
-        sanitizer_enum = args.sanitizer.upper()
-        #ret[SANITIZER_FLAG_KEY] = Sanitizers()
+        san_set = set(args.sanitizer)
+        sanitizer_build_str = ""
+        for san in san_set:
+            sanitizer_enum = Sanitizers(san.upper())
+            sanitizer_build_str += sanitizer_enum.create_cmake_sanitizer_str() + " "
+        ret[SANITIZER_FLAG_KEY] = sanitizer_build_str.strip()
 
     # gcov
     if args.gcov:
