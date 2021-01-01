@@ -9,9 +9,6 @@ namespace location {
 
 namespace detail {
 static constexpr auto DEFAULT_LOC_CHAR_ARR_VAL = "unknown";
-
-inline int f() { return 0; }
-
 }  // namespace detail
 
 // https://en.cppreference.com/w/cpp/utility/source_location
