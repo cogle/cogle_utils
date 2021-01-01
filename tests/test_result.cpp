@@ -498,7 +498,7 @@ TEST_CASE("Result >> Operator") {
         REQUIRE(result.is_ok());
         REQUIRE_FALSE(result.is_err());
 
-        auto func = [a, &counter]() {
+        auto func = [&counter]() {
             counter += 1;
             return static_cast<int>(a);
         };
