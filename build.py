@@ -314,7 +314,7 @@ def parse_args():
     # Extract all parser args below
 
     # If there is nothing then early terminate and attempt to use the cached version
-    if sys.argv == 1:
+    if len(sys.argv) == 1:
         return ret
 
     # make clean
