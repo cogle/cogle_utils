@@ -988,6 +988,28 @@ public:
         func();
     }
 
+    // Custom *(derefernce) operator will return value
+    // This will abort if the result contains an error.
+    template <typename U = R>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, U&> operator*() & noexcept {
+        return result();
+    }
+
+    template <typename U = R>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, U&&> operator*() && noexcept {
+        return std::move(result());
+    }
+
+    template <typename U = R>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, const U&> operator*() const& noexcept {
+        return result();
+    }
+
+    template <typename U = R>
+    [[nodiscard]] constexpr std::enable_if_t<!std::is_void_v<U>, const U&&> operator*() const&& noexcept {
+        return std::move(result());
+    }
+
 private:
     // Non-void and_then_
     template <typename S, typename F, typename X = R, typename = std::enable_if_t<!std::is_void_v<X>>>

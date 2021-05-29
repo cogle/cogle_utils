@@ -34,17 +34,17 @@ int main(int argc, char const* argv[]) {
 
     if (!file_open_ret) {
         const auto& ec = file_open_ret.error();
-        std::cout << "Attempting to open " << file_name << " failed with error " << strerror(ec) << "(" << ec << ")"
+        std::cerr << "Attempting to open " << file_name << " failed with error " << strerror(ec) << "(" << ec << ")"
                   << std::endl;
     } else {
-        std::cout << "Terminating the example early file should have not open" << std::endl;
+        std::cerr << "Terminating the example early file should have not open" << std::endl;
         return main_return_codes::FAILURE;
     }
 
     file_open_ret = open_file(file_name, O_CREAT | O_RDWR | O_TRUNC);
 
     if (!file_open_ret) {
-        std::cout << "Terminating the example early file should have opened" << std::endl;
+        std::cerr << "Terminating the example early file should have opened" << std::endl;
         return main_return_codes::FAILURE;
     }
 
