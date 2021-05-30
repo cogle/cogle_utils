@@ -1,7 +1,7 @@
 #pragma once
 
-namespace examplers {
+namespace examples {
 namespace directory {
 constexpr auto EXAMPLES_DIR_PATH = "@EXAMPLES_DIR_PATH@";
 }
-}  // namespace examplers
+}  // namespace examples

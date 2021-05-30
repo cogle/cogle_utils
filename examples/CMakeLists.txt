@@ -8,7 +8,9 @@ message(STATUS "Examples will be using ${EXAMPLES_DIR_PATH} as their directory p
 file(REMOVE ${EXAMPLES_DIR_PATH})
 file(MAKE_DIRECTORY ${EXAMPLES_DIR_PATH})
 
-configure_file(include/example_helpers.hxx.in include/example_helpers.hxx @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/example_helpers.hxx.in 
+               ${CMAKE_CURRENT_SOURCE_DIR}/include/example_helpers.hxx 
+               @ONLY)
 
 include_directories(include/)
 
