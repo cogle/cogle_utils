@@ -510,4 +510,15 @@ TEST_CASE("Result >> Operator") {
     }
 }
 
+TEST_CASE("Result * Operator") {
+    SECTION("Result<char, int> Ok >>") {
+        constexpr char a = 'a';
+        Ok<char> ok_char{a};
+
+        Result<char, int> result{ok_char};
+        REQUIRE(result.is_ok());
+        REQUIRE(*result == a);
+    }
+}
+
 }  // namespace
