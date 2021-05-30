@@ -1,3 +1,4 @@
 *build/
 .build.info.json
 *.vscode/
+example_helpers.hxx
