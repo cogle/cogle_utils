@@ -1,0 +1,7 @@
+#pragma once
+
+namespace examples {
+namespace directory {
+constexpr auto EXAMPLES_DIR_PATH = "@EXAMPLES_DIR_PATH@";
+}
+}  // namespace examples
