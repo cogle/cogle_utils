@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <iostream>
+#include <utils/compatibility.hxx>
 
 namespace cogle {
 namespace utils {
@@ -15,9 +16,8 @@ template <typename... Args>
 
 template <typename... Args>
 constexpr void cogle_assert(bool expect, Args&&... args) {
-    if (!__builtin_expect(expect, 0)) {
-        abort(std::forward<Args>(args)...);
-    }
+    LIKELY_IF(expect) { return; }
+    abort(std::forward<Args>(args)...);
 }
 
 }  // namespace abort
