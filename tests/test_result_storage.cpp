@@ -123,57 +123,99 @@ TEST_CASE("ResultStorage Trivial Destruction [result][ResultStorage]") {
     }
     SECTION("ResultStorage<char, int> copy assignment operator construction [Ok]") {
         constexpr auto test_char_a = 'a';
+        constexpr auto test_char_b = 'b';
 
-        Ok<char> ok{test_char_a};
+        Ok<char> ok_a{test_char_a};
+        Ok<char> ok_b{test_char_b};
 
-        detail::ResultStorage<char, int> storage{ok};
-        detail::ResultStorage<char, int> storage_cpy = storage;
+        detail::ResultStorage<char, int> storage_a{ok_a};
 
-        REQUIRE(storage.get_tag() == detail::ResultTag::OK);
-        REQUIRE(storage.get_result() == test_char_a);
+        REQUIRE(storage_a.get_tag() == detail::ResultTag::OK);
+        REQUIRE(storage_a.get_result() == test_char_a);
 
-        REQUIRE(storage_cpy.get_tag() == detail::ResultTag::OK);
-        REQUIRE(storage_cpy.get_result() == test_char_a);
+        detail::ResultStorage<char, int> storage_b{ok_b};
+
+        REQUIRE(storage_b.get_tag() == detail::ResultTag::OK);
+        REQUIRE(storage_b.get_result() == test_char_b);
+
+        storage_b = storage_a;
+
+        REQUIRE(storage_a.get_tag() == detail::ResultTag::OK);
+        REQUIRE(storage_a.get_result() == test_char_a);
+
+        REQUIRE(storage_b.get_tag() == detail::ResultTag::OK);
+        REQUIRE(storage_b.get_result() == test_char_a);
     }
     SECTION("ResultStorage<char, int> copy assignment operator construction [Err]") {
-        constexpr auto test_int = 100;
+        constexpr auto test_int_100 = 100;
+        constexpr auto test_int_200 = 200;
 
-        Err<int> err{test_int};
+        Err<int> err_100{test_int_100};
+        Err<int> err_200{test_int_200};
 
-        detail::ResultStorage<char, int> storage{err};
-        detail::ResultStorage<char, int> storage_cpy = storage;
+        detail::ResultStorage<char, int> storage_100{err_100};
 
-        REQUIRE(storage.get_tag() == detail::ResultTag::ERR);
-        REQUIRE(storage.get_error() == test_int);
+        REQUIRE(storage_100.get_tag() == detail::ResultTag::ERR);
+        REQUIRE(storage_100.get_error() == test_int_100);
 
-        REQUIRE(storage_cpy.get_tag() == detail::ResultTag::ERR);
-        REQUIRE(storage_cpy.get_error() == test_int);
+        detail::ResultStorage<char, int> storage_200{err_200};
+
+        REQUIRE(storage_200.get_tag() == detail::ResultTag::ERR);
+        REQUIRE(storage_200.get_error() == test_int_200);
+
+        storage_200 = storage_100;
+
+        REQUIRE(storage_100.get_tag() == detail::ResultTag::ERR);
+        REQUIRE(storage_100.get_error() == test_int_100);
+
+        REQUIRE(storage_200.get_tag() == detail::ResultTag::ERR);
+        REQUIRE(storage_200.get_error() == test_int_100);
     }
     SECTION("ResultStorage<char, int> move assignment operator construction [Ok]") {
         constexpr auto test_char_a = 'a';
+        constexpr auto test_char_b = 'b';
 
-        Ok<char> ok{test_char_a};
+        Ok<char> ok_a{test_char_a};
+        Ok<char> ok_b{test_char_b};
 
-        detail::ResultStorage<char, int> storage{ok};
-        detail::ResultStorage<char, int> storage_mv = std::move(storage);
+        detail::ResultStorage<char, int> storage_a{ok_a};
+        detail::ResultStorage<char, int> storage_b{ok_b};
 
-        REQUIRE(storage.get_tag() == detail::ResultTag::INVALID);
+        REQUIRE(storage_a.get_tag() == detail::ResultTag::OK);
+        REQUIRE(storage_a.get_result() == test_char_a);
 
-        REQUIRE(storage_mv.get_tag() == detail::ResultTag::OK);
-        REQUIRE(storage_mv.get_result() == test_char_a);
+        REQUIRE(storage_b.get_tag() == detail::ResultTag::OK);
+        REQUIRE(storage_b.get_result() == test_char_b);
+
+        storage_b = std::move(storage_a);
+
+        REQUIRE(storage_a.get_tag() == detail::ResultTag::INVALID);
+
+        REQUIRE(storage_b.get_tag() == detail::ResultTag::OK);
+        REQUIRE(storage_b.get_result() == test_char_a);
     }
     SECTION("ResultStorage<char, int> move assignment operator construction [Err]") {
-        constexpr auto test_int = 100;
+        constexpr auto test_int_100 = 100;
+        constexpr auto test_int_200 = 200;
 
-        Err<int> err{test_int};
+        Err<int> err_100{test_int_100};
+        Err<int> err_200{test_int_200};
 
-        detail::ResultStorage<char, int> storage{err};
-        detail::ResultStorage<char, int> storage_mv = std::move(storage);
+        detail::ResultStorage<char, int> storage_100{err_100};
+        detail::ResultStorage<char, int> storage_200{err_200};
 
-        REQUIRE(storage.get_tag() == detail::ResultTag::INVALID);
+        REQUIRE(storage_100.get_tag() == detail::ResultTag::ERR);
+        REQUIRE(storage_100.get_error() == test_int_100);
 
-        REQUIRE(storage_mv.get_tag() == detail::ResultTag::ERR);
-        REQUIRE(storage_mv.get_error() == test_int);
+        REQUIRE(storage_200.get_tag() == detail::ResultTag::ERR);
+        REQUIRE(storage_200.get_error() == test_int_200);
+
+        storage_200 = std::move(storage_100);
+
+        REQUIRE(storage_100.get_tag() == detail::ResultTag::INVALID);
+
+        REQUIRE(storage_200.get_tag() == detail::ResultTag::ERR);
+        REQUIRE(storage_200.get_error() == test_int_100);
     }
 }
 
