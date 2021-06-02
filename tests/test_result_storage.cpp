@@ -856,49 +856,83 @@ TEST_CASE("ResultStorage Trivial Destruction [result][ResultStorage] void Result
         REQUIRE(storage_mv.get_error() == test_int);
     }
     SECTION("ResultStorage<void, int> copy assignment operator construction [Ok]") {
+        constexpr auto test_int = 100;
+
         Ok<void> ok{};
+        Err<int> err{test_int};
 
-        detail::ResultStorage<void, int> storage{ok};
-        detail::ResultStorage<void, int> storage_cpy = storage;
+        detail::ResultStorage<void, int> storage_foo{ok};
+        detail::ResultStorage<void, int> storage_bar{err};
 
-        REQUIRE(storage.get_tag() == detail::ResultTag::OK);
-        REQUIRE(storage_cpy.get_tag() == detail::ResultTag::OK);
+        REQUIRE(storage_foo.get_tag() == detail::ResultTag::OK);
+
+        REQUIRE(storage_bar.get_tag() == detail::ResultTag::ERR);
+        REQUIRE(storage_bar.get_error() == test_int);
+
+        storage_bar = storage_foo;
+
+        REQUIRE(storage_foo.get_tag() == detail::ResultTag::OK);
+        REQUIRE(storage_bar.get_tag() == detail::ResultTag::OK);
     }
     SECTION("ResultStorage<void, int> copy assignment operator construction [Err]") {
         constexpr auto test_int = 100;
 
+        Ok<void> ok{};
         Err<int> err{test_int};
 
-        detail::ResultStorage<void, int> storage{err};
-        detail::ResultStorage<void, int> storage_cpy = storage;
+        detail::ResultStorage<void, int> storage_foo{err};
+        detail::ResultStorage<void, int> storage_bar{ok};
 
-        REQUIRE(storage.get_tag() == detail::ResultTag::ERR);
-        REQUIRE(storage.get_error() == test_int);
+        REQUIRE(storage_foo.get_tag() == detail::ResultTag::ERR);
+        REQUIRE(storage_foo.get_error() == test_int);
 
-        REQUIRE(storage_cpy.get_tag() == detail::ResultTag::ERR);
-        REQUIRE(storage_cpy.get_error() == test_int);
+        REQUIRE(storage_bar.get_tag() == detail::ResultTag::OK);
+
+        storage_bar = storage_foo;
+
+        REQUIRE(storage_foo.get_tag() == detail::ResultTag::ERR);
+        REQUIRE(storage_foo.get_error() == test_int);
+
+        REQUIRE(storage_bar.get_tag() == detail::ResultTag::ERR);
+        REQUIRE(storage_bar.get_error() == test_int);
     }
     SECTION("ResultStorage<void, int> move assignment operator construction [Ok]") {
+        constexpr auto test_int = 100;
+
         Ok<void> ok{};
+        Err<int> err{test_int};
 
-        detail::ResultStorage<void, int> storage{ok};
-        detail::ResultStorage<void, int> storage_mv = std::move(storage);
+        detail::ResultStorage<void, int> storage_foo{ok};
+        detail::ResultStorage<void, int> storage_bar{err};
 
-        REQUIRE(storage.get_tag() == detail::ResultTag::INVALID);
-        REQUIRE(storage_mv.get_tag() == detail::ResultTag::OK);
+        REQUIRE(storage_foo.get_tag() == detail::ResultTag::OK);
+
+        REQUIRE(storage_bar.get_tag() == detail::ResultTag::ERR);
+        REQUIRE(storage_bar.get_error() == test_int);
+
+        storage_bar = std::move(storage_foo);
+
+        REQUIRE(storage_foo.get_tag() == detail::ResultTag::INVALID);
+        REQUIRE(storage_bar.get_tag() == detail::ResultTag::OK);
     }
     SECTION("ResultStorage<void, int> move assignment operator construction [Err]") {
         constexpr auto test_int = 100;
 
+        Ok<void> ok{};
         Err<int> err{test_int};
 
-        detail::ResultStorage<void, int> storage{err};
-        detail::ResultStorage<void, int> storage_mv = std::move(storage);
+        detail::ResultStorage<void, int> storage_foo{err};
+        detail::ResultStorage<void, int> storage_bar{ok};
 
-        REQUIRE(storage.get_tag() == detail::ResultTag::INVALID);
+        REQUIRE(storage_foo.get_tag() == detail::ResultTag::ERR);
+        REQUIRE(storage_foo.get_error() == test_int);
 
-        REQUIRE(storage_mv.get_tag() == detail::ResultTag::ERR);
-        REQUIRE(storage_mv.get_error() == test_int);
+        REQUIRE(storage_bar.get_tag() == detail::ResultTag::OK);
+
+        storage_bar = std::move(storage_foo);
+
+        REQUIRE(storage_foo.get_tag() == detail::ResultTag::INVALID);
+        REQUIRE(storage_bar.get_tag() == detail::ResultTag::ERR);
     }
 }
 
