@@ -465,6 +465,7 @@ def run_genhtml(coverage_file_url: str, report_out_dir: str) -> None:
     print_centered("Running genhtml", fill_char="~")
     subprocess_check_call(
         ["genhtml", coverage_file_url,  "--output-directory", report_out_dir])
+    print(f"HTML report can be found at {report_out_dir}")
     print_centered("LCOV has completed successfully", fill_char="~")
 
 
