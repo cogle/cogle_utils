@@ -1012,13 +1012,6 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage] void sp
     SECTION("ResultStorage<void, NotSoTrivial> copy assignment [Ok<void>]") {
         Ok<void> ok{};
 
-        detail::ResultStorage<void, NotSoTrivial> storage{ok};
-        detail::ResultStorage<void, NotSoTrivial> storage_cpy = storage;
-
-        REQUIRE(storage.get_tag() == detail::ResultTag::OK);
-        REQUIRE(storage_cpy.get_tag() == detail::ResultTag::OK);
-    }
-    SECTION("ResultStorage<void, NotSoTrivial> copy assignment [Err<NotSoTrivial>]") {
         auto int_ptr             = std::make_shared<int>(100);
         const std::string phrase = "This is a test of template deduction";
 
@@ -1028,55 +1021,142 @@ TEST_CASE("ResultStorage Non-Trivial Destruction [result][ResultStorage] void sp
 
         REQUIRE_FALSE(std::is_trivially_destructible<NotSoTrivial>::value);
 
-        detail::ResultStorage<void, NotSoTrivial> storage{err};
-        detail::ResultStorage<void, NotSoTrivial> storage_cpy = storage;
+        detail::ResultStorage<void, NotSoTrivial> storage_foo{ok};
+        detail::ResultStorage<void, NotSoTrivial> storage_bar{err};
 
-        auto& not_trivial_storage = storage.get_error();
+        REQUIRE(storage_foo.get_tag() == detail::ResultTag::OK);
 
-        REQUIRE(storage.get_tag() == detail::ResultTag::ERR);
-        REQUIRE(not_trivial_storage.str == not_trivial.str);
-        REQUIRE(not_trivial_storage.int_ptr == not_trivial.int_ptr);
-        REQUIRE(*not_trivial_storage.int_ptr == *not_trivial.int_ptr);
+        REQUIRE(storage_bar.get_tag() == detail::ResultTag::ERR);
+        {
+            auto& not_trivial_storage = storage_bar.get_error();
+            REQUIRE(not_trivial_storage.str == not_trivial.str);
+            REQUIRE(not_trivial_storage.int_ptr == not_trivial.int_ptr);
+            REQUIRE(*not_trivial_storage.int_ptr == *not_trivial.int_ptr);
+        }
 
-        auto& not_trivial_storage_cpy = storage_cpy.get_error();
+        storage_bar = storage_foo;
 
-        REQUIRE(storage_cpy.get_tag() == detail::ResultTag::ERR);
+        REQUIRE(storage_foo.get_tag() == detail::ResultTag::OK);
+        REQUIRE(storage_bar.get_tag() == detail::ResultTag::OK);
+    }
+    SECTION("ResultStorage<void, NotSoTrivial> copy assignment [Err<NotSoTrivial>]") {
+        Ok<void> ok{};
 
-        REQUIRE(not_trivial_storage_cpy.str == not_trivial.str);
-        REQUIRE(not_trivial_storage_cpy.int_ptr == not_trivial.int_ptr);
-        REQUIRE(*not_trivial_storage_cpy.int_ptr == *not_trivial.int_ptr);
+        auto int_ptr             = std::make_shared<int>(100);
+        const std::string phrase = "This is a test of template deduction";
+
+        NotSoTrivial not_trivial{phrase, int_ptr};
+
+        Err<NotSoTrivial> err{not_trivial};
+
+        REQUIRE_FALSE(std::is_trivially_destructible<NotSoTrivial>::value);
+
+        detail::ResultStorage<void, NotSoTrivial> storage_foo{err};
+        detail::ResultStorage<void, NotSoTrivial> storage_bar{ok};
+
+        REQUIRE(storage_foo.get_tag() == detail::ResultTag::ERR);
+
+        {
+            auto& not_trivial_storage = storage_foo.get_error();
+
+            REQUIRE(storage_foo.get_tag() == detail::ResultTag::ERR);
+            REQUIRE(not_trivial_storage.str == not_trivial.str);
+            REQUIRE(not_trivial_storage.int_ptr == not_trivial.int_ptr);
+            REQUIRE(*not_trivial_storage.int_ptr == *not_trivial.int_ptr);
+        }
+
+        REQUIRE(storage_bar.get_tag() == detail::ResultTag::OK);
+
+        storage_bar = storage_foo;
+
+        {
+            auto& not_trivial_storage = storage_foo.get_error();
+
+            REQUIRE(storage_foo.get_tag() == detail::ResultTag::ERR);
+            REQUIRE(not_trivial_storage.str == not_trivial.str);
+            REQUIRE(not_trivial_storage.int_ptr == not_trivial.int_ptr);
+            REQUIRE(*not_trivial_storage.int_ptr == *not_trivial.int_ptr);
+        }
+
+        {
+            auto& not_trivial_storage = storage_bar.get_error();
+
+            REQUIRE(storage_bar.get_tag() == detail::ResultTag::ERR);
+            REQUIRE(not_trivial_storage.str == not_trivial.str);
+            REQUIRE(not_trivial_storage.int_ptr == not_trivial.int_ptr);
+            REQUIRE(*not_trivial_storage.int_ptr == *not_trivial.int_ptr);
+        }
     }
     SECTION("ResultStorage<void, NotSoTrivial> move assignment [Ok<void>]") {
         Ok<void> ok{};
 
-        detail::ResultStorage<void, NotSoTrivial> storage{ok};
-        detail::ResultStorage<void, NotSoTrivial> storage_mv = std::move(storage);
-
-        REQUIRE(storage.get_tag() == detail::ResultTag::INVALID);
-
-        REQUIRE(storage_mv.get_tag() == detail::ResultTag::OK);
-    }
-    SECTION("ResultStorage<void, NotSoTrivial> move assignment [Err<NotSoTrivial>]") {
         auto int_ptr             = std::make_shared<int>(100);
         const std::string phrase = "This is a test of template deduction";
 
         NotSoTrivial not_trivial{phrase, int_ptr};
+
         Err<NotSoTrivial> err{not_trivial};
 
         REQUIRE_FALSE(std::is_trivially_destructible<NotSoTrivial>::value);
 
-        detail::ResultStorage<void, NotSoTrivial> storage{err};
-        detail::ResultStorage<void, NotSoTrivial> storage_mv = std::move(storage);
+        detail::ResultStorage<void, NotSoTrivial> storage_foo{ok};
+        detail::ResultStorage<void, NotSoTrivial> storage_bar{err};
 
-        REQUIRE(storage.get_tag() == detail::ResultTag::INVALID);
+        REQUIRE(storage_foo.get_tag() == detail::ResultTag::OK);
 
-        auto& not_trivial_storage_mv = storage_mv.get_error();
+        REQUIRE(storage_bar.get_tag() == detail::ResultTag::ERR);
+        {
+            auto& not_trivial_storage = storage_bar.get_error();
+            REQUIRE(not_trivial_storage.str == not_trivial.str);
+            REQUIRE(not_trivial_storage.int_ptr == not_trivial.int_ptr);
+            REQUIRE(*not_trivial_storage.int_ptr == *not_trivial.int_ptr);
+        }
 
-        REQUIRE(storage_mv.get_tag() == detail::ResultTag::ERR);
+        storage_bar = std::move(storage_foo);
 
-        REQUIRE(not_trivial_storage_mv.str == not_trivial.str);
-        REQUIRE(not_trivial_storage_mv.int_ptr == not_trivial.int_ptr);
-        REQUIRE(*not_trivial_storage_mv.int_ptr == *not_trivial.int_ptr);
+        REQUIRE(storage_foo.get_tag() == detail::ResultTag::INVALID);
+        REQUIRE(storage_bar.get_tag() == detail::ResultTag::OK);
+    }
+    SECTION("ResultStorage<void, NotSoTrivial> move assignment [Err<NotSoTrivial>]") {
+        Ok<void> ok{};
+
+        auto int_ptr             = std::make_shared<int>(100);
+        const std::string phrase = "This is a test of template deduction";
+
+        NotSoTrivial not_trivial{phrase, int_ptr};
+
+        Err<NotSoTrivial> err{not_trivial};
+
+        REQUIRE_FALSE(std::is_trivially_destructible<NotSoTrivial>::value);
+
+        detail::ResultStorage<void, NotSoTrivial> storage_foo{err};
+        detail::ResultStorage<void, NotSoTrivial> storage_bar{ok};
+
+        REQUIRE(storage_foo.get_tag() == detail::ResultTag::ERR);
+
+        {
+            auto& not_trivial_storage = storage_foo.get_error();
+
+            REQUIRE(storage_foo.get_tag() == detail::ResultTag::ERR);
+            REQUIRE(not_trivial_storage.str == not_trivial.str);
+            REQUIRE(not_trivial_storage.int_ptr == not_trivial.int_ptr);
+            REQUIRE(*not_trivial_storage.int_ptr == *not_trivial.int_ptr);
+        }
+
+        REQUIRE(storage_bar.get_tag() == detail::ResultTag::OK);
+
+        storage_bar = std::move(storage_foo);
+
+        REQUIRE(storage_foo.get_tag() == detail::ResultTag::INVALID);
+
+        {
+            auto& not_trivial_storage = storage_bar.get_error();
+
+            REQUIRE(storage_bar.get_tag() == detail::ResultTag::ERR);
+            REQUIRE(not_trivial_storage.str == not_trivial.str);
+            REQUIRE(not_trivial_storage.int_ptr == not_trivial.int_ptr);
+            REQUIRE(*not_trivial_storage.int_ptr == *not_trivial.int_ptr);
+        }
     }
 }
 
