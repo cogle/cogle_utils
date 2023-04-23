@@ -211,7 +211,6 @@ class BuildInfo:
     def run_tests(self) -> bool:
         return TESTS_FLAG_KEY in self.cmake_flags
 
-
 def check_compiler(build_dir: str, compiler_type: Compilers) -> bool:
     """Checks if the incoming compiler version is the same as the 
     previously used one in the CMakeCache.txt, compiler switching
@@ -314,6 +313,7 @@ def parse_args():
     # Extract all parser args below
 
     # If there is nothing then early terminate and attempt to use the cached version
+    # TODO: Check if there is actually a cached version
     if len(sys.argv) == 1:
         return ret
 
@@ -388,7 +388,7 @@ def perform_build(args_dict) -> None:
 
     build_dir = build_info.get_build_dir()
 
-    if args_dict[WIPE_FLAG_KEY] and os.path.exists(build_dir):
+    if args_dict.get(WIPE_FLAG_KEY, False) and os.path.exists(build_dir):
         print(f"Clearing the build directory {build_dir}")
         shutil.rmtree(build_dir)
 
@@ -518,8 +518,10 @@ def setup_build_args(args_dict, project_dir: str) -> BuildInfo:
     cmake_build_commands = FlagsExtractor.extract_cmake_args(args)
     env_args = FlagsExtractor.extract_build_env(args)
 
+    do_clean = args_dict.get(CLEAN_FLAG_KEY, False)
+
     build_info = BuildInfo(
-        build_dir, args_dict[CLEAN_FLAG_KEY], cmake_build_commands, env_args)
+        build_dir, do_clean, cmake_build_commands, env_args)
 
     return build_info
 
