@@ -21,7 +21,7 @@ target_include_directories(
     ${THIRD_PARTY_INCLUDES}
 )
 
-target_link_libraries(${TEST_TARGET} PRIVATE ${LIB_TARGET})
+target_link_libraries(${TEST_TARGET} PRIVATE ${LIB_TARGET}::lib)
 target_link_libraries(${TEST_TARGET} PRIVATE Catch2::Catch2WithMain)
 target_link_options(${TEST_TARGET} PRIVATE ${CUSTOM_LINKER_FLAGS})
 
