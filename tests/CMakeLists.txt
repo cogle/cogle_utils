@@ -10,7 +10,6 @@ set(TEST_SOURCES
     test_err.cpp
     test_result_storage.cpp
     test_source_location.cpp
-    main.cpp
 )
 
 add_executable(${TEST_TARGET} ${TEST_SOURCES})
@@ -22,13 +21,8 @@ target_include_directories(
     ${THIRD_PARTY_INCLUDES}
 )
 
-target_link_libraries(
-    ${TEST_TARGET}
-    PUBLIC
-    cogle_utils::lib
-    Catch2::Catch2
-)
-
+target_link_libraries(${TEST_TARGET} PRIVATE ${LIB_TARGET})
+target_link_libraries(${TEST_TARGET} PRIVATE Catch2::Catch2WithMain)
 target_link_options(${TEST_TARGET} PRIVATE ${CUSTOM_LINKER_FLAGS})
 
 add_test(NAME UtilsUnitTests COMMAND ${TEST_TARGET} -s -a)
