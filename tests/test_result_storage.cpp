@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "catch2/catch.hpp"
+#include "catch2/catch_test_macros.hpp"
 #include "utils/result.hxx"
 
 namespace {
@@ -1298,6 +1298,50 @@ TEST_CASE("ResultStorage Non-Trivial multiple assignment [result][ResultStorage]
                     REQUIRE(m[i] == ref_map[i]);
                     count++;
                 });
+        }
+    }
+}
+
+
+TEST_CASE("ResultStorage<void, Trivial> std::launder Test") {
+    SECTION("std::launder proper usage Test") {
+        struct Trivial {
+            const int trivial;
+        };
+
+        constexpr auto a_trivial_val = 1;
+        constexpr auto b_trivial_val = 42;
+
+        Trivial a = {a_trivial_val};
+        Trivial b = {b_trivial_val};
+
+        static_assert(std::is_standard_layout_v<Trivial> && std::is_trivial_v<Trivial>);
+
+        REQUIRE(a.trivial == a_trivial_val);
+        REQUIRE(b.trivial == b_trivial_val);
+
+        detail::ResultStorage<void, Trivial> storage_trivial_a{Err<Trivial>{a}};
+
+        {
+            REQUIRE(storage_trivial_a.get_tag() == detail::ResultTag::ERR);
+            const auto& err = storage_trivial_a.get_error();
+            REQUIRE(err.trivial == a_trivial_val);
+        }
+
+        detail::ResultStorage<void, Trivial> storage_trivial_b{Err<Trivial>{b}};
+
+        {
+            REQUIRE(storage_trivial_b.get_tag() == detail::ResultTag::ERR);
+            const auto& err = storage_trivial_b.get_error();
+            REQUIRE(err.trivial == b_trivial_val);
+        }
+
+        storage_trivial_a = storage_trivial_b;
+
+        {
+            REQUIRE(storage_trivial_a.get_tag() == detail::ResultTag::ERR);
+            const auto& err = storage_trivial_a.get_error();
+            REQUIRE(err.trivial == b_trivial_val);
         }
     }
 }

@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 
-#include "catch2/catch.hpp"
+#include "catch2/catch_test_macros.hpp"
 #include "utils/result.hxx"
 
 namespace {
@@ -518,7 +518,7 @@ TEST_CASE("Result >> Operator") {
         REQUIRE(result.is_ok());
         REQUIRE_FALSE(result.is_err());
 
-        auto func = [a, &counter](char c) {
+        auto func = [&counter](char c) {
             REQUIRE(c == a);
             counter += 1;
         };
@@ -539,7 +539,7 @@ TEST_CASE("Result >> Operator") {
         REQUIRE(result.is_ok());
         REQUIRE_FALSE(result.is_err());
 
-        auto func = [a, &counter](char c) {
+        auto func = [&counter](char c) {
             REQUIRE(c == a);
             counter += 1;
             return static_cast<int>(c);
